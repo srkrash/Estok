@@ -6,7 +6,7 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 ## Stack Tecnológico
 - **Frontend**: Flutter (Windows Desktop)
 - **Backend**: Python (Flask)
-- **Banco de Dados**: PostgreSQL (Nome do banco: `estok`)
+- **Banco de Dados**: PostgreSQL (Nome do banco: `estok`). Script de criação em `estok-db/schema.sql`.
 
 ## Arquitetura
 - Aplicação Desktop Standalone.
@@ -40,10 +40,12 @@ Interface ágil para registro de saídas.
 **Lógica de Input:**
 - Entrada Única: Usuário digita código ou descrição.
 - Multiplicador: Suporte a formato `Quantidade * Item` (ex: `5*AGUA`).
-- **Busca Dinâmica**:
-    - Se for texto/descrição: Apresentar sugestões a cada tecla digitada.
-    - Se for código de barras (leitor): Processar imediatamente sem popup de busca.
-    - Se for código auxiliar: Buscar pelo código curto.
+- **Busca Dinâmica (Consultar a cada letra)**:
+    - Otimizada para retorno rápido (máx. 20 resultados).
+    - **Prioridade de Exibição**:
+        1. Código exato (Barras ou Auxiliar).
+        2. Início da descrição (Prefix match).
+        3. Contém na descrição param.
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).
@@ -67,9 +69,11 @@ Interface ágil para registro de saídas.
     - **Body**:
         - `id_produto`: ID do produto.
         - `tipo`: 'ENTRADA' | 'SAIDA' | 'AJUSTE'.
-        - `quantidade`: Quantidade a movimentar.
+        - `quantidade`: 
+            - Se ENTRADA/SAIDA: Quantidade a adicionar/subtrair.
+            - Se AJUSTE: Nova quantidade total (substitui o estoque atual).
         - `observacao`: Texto opcional.
-    - **Retorno**: Confirmação da movimentação.
+    - **Retorno**: Confirmação da movimentação e dados atualizados.
 
 ### Vendas
 - `POST /sales`

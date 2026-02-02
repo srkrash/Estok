@@ -11,11 +11,11 @@
 
 ## Backend (Flask)
 - [x] Criar estrutura básica da API
-- [ ] Endpoint: Cadastro de Produtos (POST)
-- [ ] Endpoint: Consulta de Produtos (GET - Busca dinâmica, por ID, EAN)
-- [ ] Endpoint: Atualização de Estoque (PUT/PATCH)
-- [ ] Endpoint: Registro de Venda (POST - Movimentação de saída)
-- [ ] Criar lógica de busca "Consultar a cada letra"
+- [x] Endpoint: Cadastro de Produtos (POST)
+- [x] Endpoint: Consulta de Produtos (GET - Busca dinâmica, por ID, EAN)
+- [x] Endpoint: Atualização de Estoque (PUT/PATCH) - (Via PUT /products/<id> para edição básica, movimentação via /estok/movement implementada)
+- [x] Endpoint: Registro de Venda (POST - Movimentação de saída)
+- [x] Criar lógica de busca "Consultar a cada letra" (Prioridade: Exato > Inicio > Contém)
 
 ## Frontend (Flutter Desktop)
 - [x] Criar projeto Flutter para Windows

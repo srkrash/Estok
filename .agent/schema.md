@@ -17,7 +17,7 @@ Armazena o cadastro dos itens.
 | `preco_custo` | DECIMAL(10,2) | Preço de custo unitário |
 | `preco_venda` | DECIMAL(10,2) | Preço unitário de venda |
 | `data_cadastro` | TIMESTAMP | Data/Hora de criação do registro |
-| `ativo` | BOOLEAN | Flag para soft delete (opcional) |
+| `ativo` | BOOLEAN | Flag para soft delete (Default: `true`) |
 
 **Índices Sugeridos:**
 - index_ean13 (`ean13`)
