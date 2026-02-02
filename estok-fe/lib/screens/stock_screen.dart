@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../services/event_service.dart';
+import 'dart:async';
 
 class StockScreen extends StatefulWidget {
   const StockScreen({super.key});
@@ -9,13 +11,15 @@ class StockScreen extends StatefulWidget {
   State<StockScreen> createState() => _StockScreenState();
 }
 
-class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClientMixin {
+class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   final ProductService _productService = ProductService();
   List<Product> _allProducts = [];
   bool _isLoading = true;
   
   // Map to track edited quantities: ProductID -> NewQuantity
   final Map<int, double> _editedQuantities = {};
+  StreamSubscription? _updateSubscription;
+  late AnimationController _animationController;
 
   @override
   bool get wantKeepAlive => true;
@@ -23,7 +27,34 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
     _loadProducts();
+    
+    _updateSubscription = EventService().productUpdatedStream.listen((_) {
+      if (!mounted) return;
+      
+      if (_editedQuantities.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Atenção: Movimentações de estoque ocorreram, mas sua tela não foi atualizada devido a edições pendentes.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      } else {
+        _loadProducts();
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _updateSubscription?.cancel();
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProducts() async {
@@ -36,8 +67,20 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
       if (mounted) {
         setState(() {
           _allProducts = products;
+          // Note: we do NOT clear edited quantities here if this was triggered by background update
+          // But _loadProducts clears it in original code?
+          // Let's check original code.
+          // Original: _editedQuantities.clear();
+          // We must ONLY clear it if we are sure. 
+          // If we are here, it's either Init, Save (which clears), Refresh (user action), or Background Event (only if empty).
+          // So it is safe to clear.
           _editedQuantities.clear();
           _isLoading = false;
+        
+          // Calculate duration based on number of items to ensure smooth staggered effect
+          final int totalMs = (_allProducts.length * 50) + 500;
+          _animationController.duration = Duration(milliseconds: totalMs.clamp(1000, 5000));
+          _animationController.forward(from: 0);
         });
       }
     } catch (e) {
@@ -135,27 +178,38 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
               Navigator.pop(context);
               setState(() {
                 _editedQuantities.clear();
-                // To force fields to reset to original values, we might need to 
-                // trigger a deeper rebuild. Since we use `initialValue` in keys,
-                // re-creating the table rows creates new keys if we are smart,
-                // or we rely on the map being empty. 
-                // Actually, since `initialValue` is set once, we need to force
-                // the widgets to rebuild.
-                
-                // A simple way is re-fetching data, but that's expensive.
-                // Or just setState is enough because TextField with same key 
-                // keeps state? No, we WANT to reset state.
-                
-                // If we give unique Keys based on "mod count" or something?
-                // Or just clear map and setState. The TextFields reading 
-                // `initialValue` might stick to their current controller text 
-                // if they are not disposed. 
-                
-                // To fix this: we can just reload products. It's safe and robust.
               });
               _loadProducts(); // Reload ensures clean state
             },
             child: const Text('Sim, descartar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onRefresh() {
+    if (_editedQuantities.isEmpty) {
+      _loadProducts();
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Descartar alterações?'),
+        content: const Text('Existem alterações pendentes. Atualizar a lista descartará essas mudanças.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _loadProducts();
+            },
+            child: const Text('Atualizar mesmo assim'),
           ),
         ],
       ),
@@ -167,11 +221,17 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
     super.build(context); // See AutomaticKeepAliveClientMixin
     
     final bool hasChanges = _editedQuantities.isNotEmpty;
+    final double widthFactor = MediaQuery.of(context).size.width < 1200 ? 1.0 : 0.8;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Atualização de Estoque'),
         actions: [
+          IconButton(
+            onPressed: _isLoading ? null : _onRefresh,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Atualizar Lista',
+          ),
           if (hasChanges) ...[
             TextButton.icon(
               onPressed: _cancelChanges,
@@ -201,89 +261,146 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
                   width: double.infinity,
                   color: Colors.blue.shade50,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('Edite as quantidades diretamente na tabela e clique em Salvar.'),
-                      const Spacer(),
-                      Text('${_allProducts.length} produtos carregados'),
-                    ],
+                  child: Center(
+                    child: FractionallySizedBox(
+                      widthFactor: widthFactor,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Edite as quantidades diretamente na tabela e clique em Salvar.',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('${_allProducts.length} produtos carregados'),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 
                 // Table
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.grey[200]),
-                        columns: const [
-                          DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('EAN / Cód. Aux', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Quantidade Atual', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
-                        ],
-                        rows: _allProducts.map((product) {
-                          final isEdited = _editedQuantities.containsKey(product.id);
-                          final currentVal = _editedQuantities[product.id] ?? product.quantity;
-                          
-                          return DataRow(
-                            color: isEdited ? WidgetStateProperty.all(Colors.orange.shade50) : null,
-                            cells: [
-                              DataCell(Text(product.id.toString())),
-                              DataCell(
-                                SizedBox(
-                                  width: 300,
-                                  child: Text(
-                                    product.description, 
-                                    overflow: TextOverflow.ellipsis
-                                  )
-                                )
-                              ),
-                              DataCell(
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (product.ean13 != null && product.ean13!.isNotEmpty)
-                                      Text(product.ean13!, style: const TextStyle(fontSize: 12)),
-                                    if (product.auxCode != null && product.auxCode!.isNotEmpty)
-                                      Text('Aux: ${product.auxCode!}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ],
-                                )
-                              ),
-                              DataCell(
-                                SizedBox(
-                                  width: 100,
-                                  child: TextFormField(
-                                    key: ValueKey('qty_${product.id}'), // Helper to keep identifying the field
-                                    initialValue: currentVal.toStringAsFixed(0), // No decimals for qty usually? or do we need decimals? Schema says DECIMAL(10,3). App usually uses double. Let's use clean string.
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    decoration: InputDecoration(
-                                      border: isEdited ? const OutlineInputBorder() : InputBorder.none,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                      isDense: true,
-                                      fillColor: Colors.white,
-                                      filled: isEdited,
-                                    ),
-                                    style: TextStyle(
-                                      fontWeight: isEdited ? FontWeight.bold : FontWeight.normal,
-                                      color: isEdited ? Colors.deepOrange : Colors.black,
-                                    ),
-                                    onChanged: (val) => _onQuantityChanged(product, val),
-                                    textAlign: TextAlign.right,
+                  child: Stack(
+                      children: [
+                        // Visual background for the header
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 56, // Standard DataTable header height
+                          child: Container(color: Colors.grey[200]),
+                        ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: Center(
+                            child: FractionallySizedBox(
+                              widthFactor: widthFactor,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width * widthFactor),
+                                  child: DataTable(
+                                    headingRowColor: WidgetStateProperty.all(Colors.grey[200]),
+                                    columnSpacing: 16,
+                                    columns: const [
+                                      DataColumn(label: SizedBox(width: 50, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold)))),
+                                      DataColumn(label: SizedBox(width: 300, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold)))),
+                                      DataColumn(label: Text('EAN / Cód. Aux', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: SizedBox(width: 100, child: Text('Quantidade Atual', style: TextStyle(fontWeight: FontWeight.bold))), numeric: true),
+                                    ],
+                                    rows: _allProducts.asMap().entries.map((entry) {
+                                      final index = entry.key;
+                                      final product = entry.value;
+                                      final isEdited = _editedQuantities.containsKey(product.id);
+                                      final currentVal = _editedQuantities[product.id] ?? product.quantity;
+                                      
+                                      // Animation Logic
+                                      final totalDurationMs = _animationController.duration?.inMilliseconds ?? 1000;
+                                      final double startMs = (index * 50).toDouble();
+                                      final double endMs = startMs + 500;
+                                      
+                                      final double begin = (startMs / totalDurationMs).clamp(0.0, 1.0);
+                                      final double end = (endMs / totalDurationMs).clamp(0.0, 1.0);
+                                      
+                                      final interval = begin < end ? Interval(begin, end, curve: Curves.easeIn) : const Interval(1.0, 1.0);
+
+                                      final animation = CurvedAnimation(
+                                        parent: _animationController,
+                                        curve: interval,
+                                      );
+
+                                      return DataRow(
+                                        color: isEdited ? WidgetStateProperty.all(Colors.orange.shade50) : null,
+                                        cells: [
+                                          DataCell(FadeTransition(opacity: animation, child: Text(product.id.toString()))),
+                                          DataCell(
+                                            FadeTransition(
+                                              opacity: animation,
+                                              child: SizedBox(
+                                                width: 300,
+                                                child: Text(
+                                                  product.description, 
+                                                  overflow: TextOverflow.ellipsis
+                                                )
+                                              ),
+                                            )
+                                          ),
+                                          DataCell(
+                                            FadeTransition(
+                                              opacity: animation,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  if (product.ean13 != null && product.ean13!.isNotEmpty)
+                                                    Text(product.ean13!, style: const TextStyle(fontSize: 12)),
+                                                  if (product.auxCode != null && product.auxCode!.isNotEmpty)
+                                                    Text('Aux: ${product.auxCode!}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                                ],
+                                              ),
+                                            )
+                                          ),
+                                          DataCell(
+                                            FadeTransition(
+                                              opacity: animation,
+                                              child: SizedBox(
+                                                width: 100,
+                                                child: TextFormField(
+                                                  key: ValueKey('qty_${product.id}'),
+                                                  initialValue: currentVal.toStringAsFixed(0),
+                                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                  decoration: InputDecoration(
+                                                    border: isEdited ? const OutlineInputBorder() : InputBorder.none,
+                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                    isDense: true,
+                                                    fillColor: Colors.white,
+                                                    filled: isEdited,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: isEdited ? FontWeight.bold : FontWeight.normal,
+                                                    color: isEdited ? Colors.deepOrange : Colors.black,
+                                                  ),
+                                                  onChanged: (val) => _onQuantityChanged(product, val),
+                                                  textAlign: TextAlign.right,
+                                                ),
+                                              ),
+                                            )
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
                               ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
                 ),
               ],
             ),

@@ -17,7 +17,7 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 
 ### 0. Tela Inicial (Navegação por Abas)
 Estrutura principal da aplicação com persistência de estado.
-- **Menu Superior**: Abas para troca rápida entre módulos (Início, Produtos, Estoque, Vendas).
+- **Menu Superior**: Header unificado com Logo à esquerda e Navegação centralizada.
 - **Dashboard**: Aba inicial com resumo de vendas (Placeholder).
 - **Multitarefa**: Permite alternar entre telas sem perder dados não salvos.
 - **Transições**: Animação suave de deslizamento entre as abas e transições visuais nos botões.
@@ -35,8 +35,16 @@ Tela para inserção de novos itens no inventário.
 - Preço de Custo
 - Preço de Venda (Sugerido)
 
-### 2. Atualização de Estoque
-- Ajustes de quantidade realizados na edição de produtos geram automaticamente registros de movimentação (`AJUSTE`) via API.
+### 2. Atualização de Estoque (Em Massa)
+- **Visualização Tabular**: Exibe todos os produtos com colunas editáveis.
+- **Edição em Lote**:
+    - Permite alterar a quantidade de múltiplos produtos diretamente na tabela.
+    - Linhas editadas são destacadas (Laranja) para indicar alterações pendentes.
+    - **Proteção de Dados**:
+        - Botão "Salvar" envia todas as alterações de uma vez (chamadas individuais API).
+        - Botão "Cancelar" descarta edições e recarrega dados originais.
+        - Botão "Atualizar" (Refresh) alerta se houver dados não salvos antes de recarregar.
+- **Interface**: Segue o mesmo padrão visual da tela de produtos (animações, responsividade) para consistência.
 
 ### 3. Melhorias de Interface (UI/UX)
 - **Layout Responsivo**:
@@ -68,6 +76,17 @@ Interface ágil para registro de saídas.
     - **ESC**: Fecha overlay de busca ou cancela ações.
 - **Persistência de Estado (Cart)**: O carrinho é mantido ao navegar entre abas (ex: ir ao estoque e voltar), permitindo consultas rápidas sem perder a venda atual.
 - **Feedback Visual**: Overlay de busca posicionado com precisão, loading indicators, e tela de sucesso ao finalizar.
+
+### 5. Sincronização em Tempo Real (Event-Driven)
+Sistema de notificação global (`EventService`) que mantém todas as telas atualizadas automaticamente.
+- **Fluxo de Atualização**:
+    - **Venda Realizada**: Ao finalizar uma venda na tela de PDV, um sinal é enviado para recarregar a lista de produtos e a tela de estoque.
+    - **Ajuste de Estoque**: Alterações na tela de Estoque ou Cadastro atualizam imediatamente as outras telas.
+- **Gestão de Conflitos (Tela de Estoque)**:
+    - Se a tela de Estoque receber um sinal de atualização (ex: venda realizada em outra aba) enquanto o usuário estiver editando quantidades (com alterações não salvas), a atualização automática é pausada.
+    - Um alerta (Snackbar) informa o usuário: *"Atenção: Movimentações de estoque ocorreram..."*.
+    - Isso previne que o trabalho de digitação do usuário seja sobrescrito inesperadamente.
+
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).

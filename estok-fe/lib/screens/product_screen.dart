@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../services/event_service.dart';
 import 'product_form_screen.dart';
+import 'dart:async';
 
 class ProductScreen extends StatefulWidget {
   const ProductScreen({super.key});
@@ -20,6 +22,7 @@ class _ProductScreenState extends State<ProductScreen> with AutomaticKeepAliveCl
   int _sortColumnIndex = 0;
   bool _isAscending = true;
   late AnimationController _animationController;
+  StreamSubscription? _updateSubscription;
 
   // Search Controllers
   final TextEditingController _descSearchController = TextEditingController();
@@ -41,11 +44,24 @@ class _ProductScreenState extends State<ProductScreen> with AutomaticKeepAliveCl
     _descSearchController.addListener(_filterProducts);
     _eanSearchController.addListener(_filterProducts);
     _auxSearchController.addListener(_filterProducts);
+
+    _updateSubscription = EventService().productUpdatedStream.listen((_) {
+      if (mounted) {
+        _loadProducts();
+      }
+    });
   }
 
 
 
   Future<void> _loadProducts() async {
+    // Only show loading if it's the first load or explicit refresh. 
+    // For background updates, maybe we want to be less intrusive?
+    // User asked for "update", usually implies showing fresh data.
+    // If I set _isLoading = true, it will flash the loading spinner.
+    // Maybe better to keep current view and just swap data?
+    // But `_loadProducts` logic builds animations etc.
+    // Let's stick to simple reload for now.
     setState(() => _isLoading = true);
     try {
       final products = await _productService.getAllProducts();
@@ -138,6 +154,7 @@ class _ProductScreenState extends State<ProductScreen> with AutomaticKeepAliveCl
 
   @override
   void dispose() {
+    _updateSubscription?.cancel();
     _animationController.dispose();
     _pageController.dispose();
     _descSearchController.dispose();

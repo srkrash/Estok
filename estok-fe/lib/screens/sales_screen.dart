@@ -93,23 +93,25 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
       // Update overlay to reflect selection change
       // We re-render the overlay by calling showOverlay again with current qty
        double qty = 1.0;
-       final regex = RegExp(r'^(\d+(?:\.\d+)?)\*');
+       final regex = RegExp(r'^(\d+(?:[.,]\d+)?)\*');
        final match = regex.firstMatch(_searchController.text);
        if (match != null) {
-         qty = double.tryParse(match.group(1)!) ?? 1.0;
+         final qtyString = match.group(1)!.replaceAll(',', '.');
+         qty = double.tryParse(qtyString) ?? 1.0;
        }
        _showOverlay(qty);
     });
   }
 
   void _selectResult() {
-     if (_searchResults.isNotEmpty) {
-       double qty = 1.0;
-       final regex = RegExp(r'^(\d+(?:\.\d+)?)\*');
-       final match = regex.firstMatch(_searchController.text);
-       if (match != null) {
-         qty = double.tryParse(match.group(1)!) ?? 1.0;
-       }
+      if (_searchResults.isNotEmpty) {
+        double qty = 1.0;
+        final regex = RegExp(r'^(\d+(?:[.,]\d+)?)\*');
+        final match = regex.firstMatch(_searchController.text);
+        if (match != null) {
+          final qtyString = match.group(1)!.replaceAll(',', '.');
+          qty = double.tryParse(qtyString) ?? 1.0;
+        }
        _addToCart(_searchResults[_selectedIndex], qty);
      }
   }
@@ -134,11 +136,12 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
     // Check for multiplier pattern: 5*coke
     double qty = 1.0;
     String actualQuery = value;
-    final regex = RegExp(r'^(\d+(?:\.\d+)?)\*(.*)');
+    final regex = RegExp(r'^(\d+(?:[.,]\d+)?)\*(.*)');
     final match = regex.firstMatch(value);
 
     if (match != null) {
-      qty = double.tryParse(match.group(1)!) ?? 1.0;
+      final qtyString = match.group(1)!.replaceAll(',', '.');
+      qty = double.tryParse(qtyString) ?? 1.0;
       actualQuery = match.group(2) ?? '';
     }
 
@@ -177,11 +180,12 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
     // Check for multiplier pattern: 5*coke
     double qty = 1.0;
     String actualQuery = query;
-    final regex = RegExp(r'^(\d+(?:\.\d+)?)\*(.*)');
+    final regex = RegExp(r'^(\d+(?:[.,]\d+)?)\*(.*)');
     final match = regex.firstMatch(query);
 
     if (match != null) {
-      qty = double.tryParse(match.group(1)!) ?? 1.0;
+      final qtyString = match.group(1)!.replaceAll(',', '.');
+      qty = double.tryParse(qtyString) ?? 1.0;
       actualQuery = match.group(2) ?? '';
     }
 

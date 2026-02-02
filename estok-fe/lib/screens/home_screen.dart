@@ -49,55 +49,98 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estok'),
-        centerTitle: true,
-        elevation: 2,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _NavigationTab(
-                  label: 'Início',
-                  icon: Icons.dashboard,
-                  isSelected: _selectedIndex == 0,
-                  onTap: () => _onTabTapped(0),
+        toolbarHeight: 80,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              // Logo / Title on the left
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Estok',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900, 
+                      fontSize: 28,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Gestão Inteligente',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const Spacer(),
+              
+              // Centered Navigation Tabs
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
                   color: Colors.grey.shade100,
-                  selectedColor: Colors.deepPurple.shade100,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                _NavigationTab(
-                  label: 'Produtos',
-                  icon: Icons.inventory_2,
-                  isSelected: _selectedIndex == 1,
-                  onTap: () => _onTabTapped(1),
-                  color: Colors.blue.shade50,
-                  selectedColor: Colors.blue.shade100,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _NavigationTab(
+                      label: 'Início',
+                      icon: Icons.dashboard,
+                      isSelected: _selectedIndex == 0,
+                      onTap: () => _onTabTapped(0),
+                      color: Colors.transparent,
+                      selectedColor: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    _NavigationTab(
+                      label: 'Produtos',
+                      icon: Icons.inventory_2,
+                      isSelected: _selectedIndex == 1,
+                      onTap: () => _onTabTapped(1),
+                      color: Colors.transparent,
+                      selectedColor: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    _NavigationTab(
+                      label: 'Estoque',
+                      icon: Icons.edit_note,
+                      isSelected: _selectedIndex == 2,
+                      onTap: () => _onTabTapped(2),
+                      color: Colors.transparent,
+                      selectedColor: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    _NavigationTab(
+                      label: 'Vendas',
+                      icon: Icons.point_of_sale,
+                      isSelected: _selectedIndex == 3,
+                      onTap: () => _onTabTapped(3),
+                      color: Colors.transparent,
+                      selectedColor: Colors.white,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                _NavigationTab(
-                  label: 'Estoque',
-                  icon: Icons.edit_note,
-                  isSelected: _selectedIndex == 2,
-                  onTap: () => _onTabTapped(2),
-                  color: Colors.orange.shade50,
-                  selectedColor: Colors.orange.shade100,
-                ),
-                const SizedBox(width: 8),
-                _NavigationTab(
-                  label: 'Vendas',
-                  icon: Icons.point_of_sale,
-                  isSelected: _selectedIndex == 3,
-                  onTap: () => _onTabTapped(3),
-                  color: Colors.green.shade50,
-                  selectedColor: Colors.green.shade100,
-                ),
-              ],
-            ),
+              ),
+
+              const Spacer(),
+              
+              // Balancing widget or Actions (e.g. User Profile or Settings placeholder)
+              // For now, just a SizedBox to balance the Logo width roughly, keeping tabs centered
+              const SizedBox(width: 100), 
+            ],
           ),
         ),
+        centerTitle: false,
+        elevation: 1,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
       ),
       body: PageView(
         controller: _pageController,
