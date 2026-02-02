@@ -23,35 +23,28 @@ Estrutura principal da aplicação com persistência de estado.
 
 ### 1. Cadastro de Produtos
 Tela para inserção de novos itens no inventário.
+- **Modo Integrado**: O formulário é exibido dentro da tela de listagem, mantendo o menu superior acessível.
+- **Responsividade**: Adapta-se automaticamente à largura da janela (80% em telas grandes, 100% em telas < 1200px).
 **Campos:**
 - Descrição
-- Quantidade (Estoque Atual)
+- Quantidade (Estoque Atual - permite ajuste direto que gera movimentação de estoque)
 - Código de Barras (EAN13/GTIN)
 - Código Auxiliar (Numérico, 3 a 6 dígitos, para produtos sem código de barras)
 - Data de Cadastro
 - Preço de Custo
 - Preço de Venda (Sugerido)
 
-### 2. Atualização de Estoque em Massa
-Tela otimizada para produtividade.
-- Visualização em grade/planilha.
-- Permite editar a quantidade de múltiplos produtos rapidamente.
-- Ideal para ajustes de balanço ou entrada de mercadoria simples.
+### 2. Atualização de Estoque
+- Ajustes de quantidade realizados na edição de produtos geram automaticamente registros de movimentação (`AJUSTE`) via API.
 
-### 3. Histórico de Movimentações (Kardex)
-Registro detalhado de todas as operações de estoque (entradas, saídas, ajustes). Permite rastreabilidade completa do giro de produtos.
-
-### 4. Tela de Venda (PDV)
-Interface ágil para registro de saídas.
-**Lógica de Input:**
-- Entrada Única: Usuário digita código ou descrição.
-- Multiplicador: Suporte a formato `Quantidade * Item` (ex: `5*AGUA`).
-- **Busca Dinâmica (Consultar a cada letra)**:
-    - Otimizada para retorno rápido (máx. 20 resultados).
-    - **Prioridade de Exibição**:
-        1. Código exato (Barras ou Auxiliar).
-        2. Início da descrição (Prefix match).
-        3. Contém na descrição param.
+### 3. Melhorias de Interface (UI/UX)
+- **Layout Responsivo**:
+    - **Desktop (>1200px)**: Conteúdo centralizado ocupando 80% da tela para melhor leitura.
+    - **Telas Menores (<1200px)**: Conteúdo expande para 100% da largura.
+- **Visual Refinado**:
+    - Cabeçalhos de tabela e barras de busca com fundos "full-width" para consistência visual.
+    - Tabela de produtos com colunas otimizadas (ID reduzido, Descrição expandida) para evitar cortes de texto.
+    - Formatação numérica e monetária padronizada (vírgula como separador decimal).
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).
