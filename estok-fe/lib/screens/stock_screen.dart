@@ -374,11 +374,21 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
                                                   initialValue: currentVal.toStringAsFixed(0),
                                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                                   decoration: InputDecoration(
-                                                    border: isEdited ? const OutlineInputBorder() : InputBorder.none,
-                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                    // Always show a border to indicate editability
+                                                    border: const OutlineInputBorder(),
+                                                    enabledBorder: OutlineInputBorder(
+                                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                                    ),
+                                                    focusedBorder: const OutlineInputBorder(
+                                                      borderSide: BorderSide(color: Colors.blue, width: 2),
+                                                    ),
+                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                                     isDense: true,
-                                                    fillColor: Colors.white,
-                                                    filled: isEdited,
+                                                    fillColor: isEdited ? Colors.orange.shade50 : Colors.white,
+                                                    filled: true,
+                                                    suffixIcon: isEdited 
+                                                        ? const Icon(Icons.edit, size: 14, color: Colors.deepOrange)
+                                                        : const Icon(Icons.edit_outlined, size: 14, color: Colors.grey),
                                                   ),
                                                   style: TextStyle(
                                                     fontWeight: isEdited ? FontWeight.bold : FontWeight.normal,
