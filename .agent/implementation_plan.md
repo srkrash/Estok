@@ -1,62 +1,42 @@
-# Plano de Implementação - Métricas Avançadas do Dashboard
+# Implementation Plan - Server Manager GUI
 
-## Objetivo
-Adicionar métricas estratégicas ao Dashboard: Valor Total em Estoque (Patrimônio), Ticket Médio e Alertas de Estoque baseados na média de vendas (Smart Alerts).
+## Goal
+Create a Desktop GUI wrapper for the Flask Server to manage its lifecycle, database connections, and background execution via System Tray.
 
-## Backend (Python - Flask)
+## User Review Required
+> [!NOTE]
+> This implementation requires additional Python libraries: `pystray` and `Pillow`.
 
-### 1. Atualizar `/dashboard/summary` (Ticket Médio)
-Adicionar o cálculo de Ticket Médio (`total_vendas / numero_vendas`) para os períodos Hoje, Semana e Mês.
-**Novo Retorno:**
-```json
-{
-  "sales": { "today": 1200, "week": 5000, "month": 20000 },
-  "profit": { ... },
-  "ticket_counts": { "today": 12, "week": 45, "month": 180 }, 
-  "average_ticket": { "today": 100, "week": 111, "month": 111 } // Novo
-}
-```
+## Proposed Changes
 
-### 2. Novo Endpoint `/dashboard/inventory-summary`
-Retorna o valor financeiro do estoque.
-**Retorno:**
-```json
-{
-  "total_cost_value": 50500.00, // Patrimônio (Qtd * Preço Custo)
-  "total_sale_potential": 95000.00, // Potencial Bruto (Qtd * Preço Venda)
-  "total_items": 1500 // Qtd total de itens físicos
-}
-```
+### Documentation
+#### [MODIFY] [.agent/doc.md](file:///e:/Dev/Estok/.agent/doc.md)
+- Add "Server Manager" component to Architecture.
 
-### 3. Novo Endpoint `/dashboard/smart-alerts`
-Identifica produtos com estoque baixo baseado na velocidade de vendas dos últimos 30 dias.
-**Lógica:**
-1. Calcular `vendas_total_30d` para cada produto.
-2. `media_diaria` = `vendas_total_30d / 30`.
-3. `dias_cobertura` = `estoque_atual / media_diaria`.
-4. Se `dias_cobertura < 7` (menos de uma semana de estoque) E `media_diaria > 0`: Adiciona ao alerta.
-**Retorno:**
-```json
-[
-  {
-    "id": 10,
-    "name": "Cerveja Lata",
-    "current_stock": 12,
-    "daily_average": 5.0,
-    "days_supply": 2.4 // Dura só mais 2 dias!
-  }
-]
-```
+#### [MODIFY] [.agent/todo.md](file:///e:/Dev/Estok/.agent/todo.md)
+- Add tasks for Server Interface (GUI, DB Init, Connectivity Test, Tray).
 
-## Frontend (Flutter)
+### Backend (Python/Flask)
+#### [NEW] [estok-py/server_gui.py](file:///e:/Dev/Estok/estok-py/server_gui.py)
+- **GUI Framework**: `tkinter` (Standard Python).
+- **Tray Icon**: `pystray`.
+- **Features**:
+    - **Server Status**: Start/Stop server thread.
+    - **DB Tools**:
+        - "Test Connection": Pings DB.
+        - "Initialize Database": Runs `schema.sql`.
+    - **Window Management**:
+        - Close (X) -> Minimize to Tray.
+        - Double-click Tray -> Restore Window.
+        - Quit option in Tray -> Full exit.
 
-### Componentes UI
-1.  **Card de Patrimônio**: Exibe "Valor em Estoque" (Custo) e "Potencial de Venda".
-2.  **Ticket Médio**: Adicionar essa informação nos cards de Vendas já existentes (ex: uma linha extra "Ticket Médio: R$ 50,00").
-3.  **Lista de Alertas Inteligentes**:
-    *   Nova seção "Atenção Necessária" ou "Reposição Sugerida".
-    *   Lista produtos com baixo `days_supply`, ordenado pela urgência (menor cobertura primeiro).
-    *   Visual de alerta (ícone vermelho/laranja).
-
-## Atualização de Documentação
-*   Atualizar endpoints em `doc.md` e tarefas em `todo.md`.
+## Verification Plan
+### Manual Verification
+1. **Install Dependencies**: `pip install pystray Pillow`
+2. **Run GUI**: `python estok-py/server_gui.py`
+3. **Test DB Connection**: Click "Test Connection" button.
+4. **Init DB**: Click "Initialize Database" and verify tables in Postgres.
+5. **Start Server**: Verify status indicator changes to "Running" (Green).
+6. **Minimize**: Close window, verify icon in tray.
+7. **Restore**: Double-click tray icon.
+8. **Quit**: Use Tray menu to Quit.

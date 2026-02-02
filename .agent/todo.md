@@ -44,6 +44,15 @@
     - [x] Lista de itens na venda atual
     - [x] Finalização da venda
 
+## Server Manager (GUI/Tray)
+- [x] Criar interface gráfica (Tkinter) para controle do servidor
+- [x] Implementar teste de conexão com o banco de dados
+- [x] Implementar botão para inicializar o banco de dados (Executar schema.sql)
+- [x] Implementar System Tray (Ícone na bandeja)
+    - [x] Servidor continua rodando ao fechar a janela (Minimizar para bandeja)
+    - [x] Duplo clique no ícone restaura a janela
+    - [x] Indicativo visual de servidor rodando (Status Label/Icon)
+
 ## Build & Deploy
 - [ ] Criar executável do servidor Flask
 - [ ] Criar instalador/executável do cliente Flutter Windows

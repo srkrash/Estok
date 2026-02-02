@@ -7,7 +7,6 @@ Esta documentação descreve os endpoints disponíveis para integração com o F
 ## Produtos
 
 ### 1. Listar / Buscar Produtos
-### 1. Listar / Buscar Produtos
 Retorna uma lista de produtos cadastrados. Permite filtragem por termo de busca.
 *Ideal para PDV/Vendas (Resultados limitados).*
 
@@ -216,4 +215,120 @@ Processa uma venda completa, baixa o estoque de múltiplos itens e gera o histó
   "items_count": 2,
   "total_value": 155.00
 }
+```
+
+---
+
+## Dashboard
+
+### 6. Resumo de Vendas e Lucro
+Retorna totais de vendas, lucro e ticket médio para Hoje, Semana (últimos 7 dias) e Mês atual.
+
+- **Método:** `GET`
+- **URL:** `/dashboard/summary`
+
+**Exemplo de Resposta (200 OK):**
+```json
+{
+  "sales": {
+    "today": 1250.00,
+    "week": 8500.50,
+    "month": 32000.00
+  },
+  "profit": {
+    "today": 450.00,
+    "week": 3200.00,
+    "month": 12500.00
+  },
+  "average_ticket": {
+    "today": 55.00,
+    "week": 62.15,
+    "month": 58.90
+  }
+}
+```
+
+---
+
+### 7. Vendas Recentes
+Retorna as 5 últimas vendas realizadas.
+
+- **Método:** `GET`
+- **URL:** `/dashboard/recent-sales`
+
+**Exemplo de Resposta (200 OK):**
+```json
+[
+  {
+    "id": 55,
+    "data_venda": "2024-05-20T14:30:00",
+    "valor_total": 155.00,
+    "items_count": 2,
+    "items": [...]
+  },
+  ...
+]
+```
+
+---
+
+### 8. Produtos Mais Vendidos (Top Products)
+Retorna os 5 produtos com maior quantidade vendida nos últimos 7 dias.
+
+- **Método:** `GET`
+- **URL:** `/dashboard/top-products`
+
+**Exemplo de Resposta (200 OK):**
+```json
+[
+  {
+    "id": 10,
+    "name": "Coca Cola 2L",
+    "quantity_sold": 150.0
+  },
+  {
+    "id": 5,
+    "name": "Pão Francês",
+    "quantity_sold": 90.0
+  }
+]
+```
+
+---
+
+### 9. Resumo de Inventário (Patrimônio)
+Retorna o valor financeiro total do estoque com base no custo e no potencial de venda.
+
+- **Método:** `GET`
+- **URL:** `/dashboard/inventory-summary`
+
+**Exemplo de Resposta (200 OK):**
+```json
+{
+  "total_cost_value": 45000.00, // Custo Total (Patrimônio)
+  "total_sale_potential": 90000.00, // Potencial de Venda (Bruto)
+  "total_items": 1500.0 // Quantidade física total
+}
+```
+
+---
+
+### 10. Alertas Inteligentes (Smart Alerts)
+Identifica produtos com baixo estoque com base na média de vendas dos últimos 30 dias.
+*Regra: Estoque < 7 dias de cobertura.*
+
+- **Método:** `GET`
+- **URL:** `/dashboard/smart-alerts`
+
+**Exemplo de Resposta (200 OK):**
+```json
+[
+  {
+    "id": 12,
+    "name": "Leite Integral",
+    "current_stock": 10.0,
+    "daily_average": 5.0,
+    "days_supply": 2.0 // Dura apenas 2 dias
+  }
+]
 ```

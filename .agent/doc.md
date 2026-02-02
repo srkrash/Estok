@@ -10,6 +10,7 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 
 ## Arquitetura
 - Aplicação Desktop Standalone.
+- **Server Manager**: Aplicação de bandeja (Tray App) para gerenciamento do servidor Flask e Banco de Dados.
 - Servidor Flask será compilado para executável.
 - Comunicação via HTTP REST API (localhost).
 

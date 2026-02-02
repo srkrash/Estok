@@ -11,6 +11,9 @@ app = Flask(__name__)
 # Fallback to a default for development if not set
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/estok')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "connect_args": {"client_encoding": "utf8"}
+}
 
 db = SQLAlchemy(app)
 
