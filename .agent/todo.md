@@ -19,6 +19,9 @@
 
 ## Frontend (Flutter Desktop)
 - [x] Criar projeto Flutter para Windows
+- [x] **Tela Inicial (Home)**
+    - [x] Implementar Dashboard (Placeholder)
+    - [x] Navegação para outras telas
 - [ ] **Tela: Cadastro de Produtos**
     - [ ] Campos: Descrição, EAN13/GTIN, Código Auxiliar, Qtd Inicial, Preço, etc.
 - [ ] **Tela: Atualização de Estoque**

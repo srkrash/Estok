@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, case
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,7 +26,7 @@ class Produto(db.Model):
     quantidade = db.Column(db.Numeric(10, 3), default=0)
     preco_custo = db.Column(db.Numeric(10, 2))
     preco_venda = db.Column(db.Numeric(10, 2))
-    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
+    data_cadastro = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     ativo = db.Column(db.Boolean, default=True)
 
     def to_dict(self):
@@ -51,7 +51,7 @@ class MovimentacaoEstoque(db.Model):
     quantidade_anterior = db.Column(db.Numeric(10, 3))
     quantidade_movimentada = db.Column(db.Numeric(10, 3))
     quantidade_nova = db.Column(db.Numeric(10, 3))
-    data_movimentacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_movimentacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     id_venda = db.Column(db.Integer, nullable=True) # Optional FK to sales if we implement it later
     observacao = db.Column(db.Text, nullable=True)
 
@@ -71,7 +71,7 @@ class Venda(db.Model):
     __tablename__ = 'vendas'
 
     id = db.Column(db.Integer, primary_key=True)
-    data_venda = db.Column(db.DateTime, default=datetime.utcnow)
+    data_venda = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     valor_total = db.Column(db.Numeric(10, 2))
 
     # Relationship to Items
@@ -200,7 +200,10 @@ def update_product(id):
     """
     Update product details.
     """
-    product = Produto.query.get_or_404(id)
+    product = db.session.get(Produto, id)
+    if not product:
+         return jsonify({"message": "Product not found"}), 404
+
     data = request.json
 
     if not data:
@@ -261,7 +264,7 @@ def stock_movement():
         return jsonify({"message": "Invalid input: id_produto and valid tipo required"}), 400
 
     try:
-        product = Produto.query.get(id_produto)
+        product = db.session.get(Produto, id_produto)
         if not product:
             return jsonify({"message": "Product not found"}), 404
 
@@ -339,7 +342,7 @@ def create_sale():
         # So we add Sale first, flush to get ID, then items.
         
         new_sale = Venda(
-            data_venda=datetime.utcnow(),
+            data_venda=datetime.now(timezone.utc),
             valor_total=0 # Will update after summing items
         )
         db.session.add(new_sale)
@@ -355,7 +358,7 @@ def create_sale():
             if qtd <= 0:
                 raise ValueError(f"Quantity for product {prod_id} must be positive")
 
-            product = Produto.query.get(prod_id)
+            product = db.session.get(Produto, prod_id)
             if not product:
                  raise ValueError(f"Product ID {prod_id} not found")
             
@@ -389,7 +392,7 @@ def create_sale():
                 quantidade_anterior=old_qty,
                 quantidade_movimentada=-qtd, # Negative for exit
                 quantidade_nova=new_qty,
-                data_movimentacao=datetime.utcnow(),
+                data_movimentacao=datetime.now(timezone.utc),
                 id_venda=new_sale.id,
                 observacao=f"Venda #{new_sale.id}"
             )
