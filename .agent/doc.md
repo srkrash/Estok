@@ -46,6 +46,18 @@ Tela para inserção de novos itens no inventário.
     - Tabela de produtos com colunas otimizadas (ID reduzido, Descrição expandida) para evitar cortes de texto.
     - Formatação numérica e monetária padronizada (vírgula como separador decimal).
 
+### 4. Tela de Venda (PDV)
+Interface ágil para registro de saídas.
+**Lógica de Input:**
+- Entrada Única: Usuário digita código ou descrição.
+- Multiplicador: Suporte a formato `Quantidade * Item` (ex: `5*AGUA`).
+- **Busca Dinâmica (Consultar a cada letra)**:
+    - Otimizada para retorno rápido (máx. 20 resultados).
+    - **Prioridade de Exibição**:
+        1. Código exato (Barras ou Auxiliar).
+        2. Início da descrição (Prefix match).
+        3. Contém na descrição param.
+
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).
 - **Banco de Dados**: Deve persistir dados de produtos e histórico de vendas? (A princípio focado em controle de estoque e registro de saída).
