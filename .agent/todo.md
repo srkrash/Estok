@@ -13,6 +13,7 @@
 - [x] Criar estrutura básica da API
 - [x] Endpoint: Cadastro de Produtos (POST)
 - [x] Endpoint: Consulta de Produtos (GET - Busca dinâmica, por ID, EAN)
+- [x] Endpoint: Consulta de Todos os Produtos (GET /products/all)
 - [x] Endpoint: Atualização de Estoque (PUT/PATCH) - (Via PUT /products/<id> para edição básica, movimentação via /estok/movement implementada)
 - [x] Endpoint: Registro de Venda (POST - Movimentação de saída)
 - [x] Criar lógica de busca "Consultar a cada letra" (Prioridade: Exato > Inicio > Contém)
@@ -22,8 +23,8 @@
 - [x] **Tela Inicial (Home)**
     - [x] Implementar Dashboard (Placeholder)
     - [x] Navegação para outras telas
-- [ ] **Tela: Cadastro de Produtos**
-    - [ ] Campos: Descrição, EAN13/GTIN, Código Auxiliar, Qtd Inicial, Preço, etc.
+- [x] **Tela: Cadastro de Produtos**
+    - [x] Campos: Descrição, EAN13/GTIN, Código Auxiliar, Qtd Inicial, Preço, etc.
 - [ ] **Tela: Atualização de Estoque**
     - [ ] Interface estilo planilha (DataGrid) para edição rápida
     - [ ] Funcionalidade de salvar alterações em lote

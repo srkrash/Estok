@@ -109,6 +109,22 @@ class ItemVenda(db.Model):
 
 # --- Product Routes ---
 
+@app.route('/products/all', methods=['GET'])
+def get_all_products():
+    """
+    Get ALL products without pagination or strict limits.
+    Designed for management screens (Product Registration/Stock Management).
+    """
+    try:
+        products = Produto.query.filter(Produto.ativo == True).order_by(Produto.descricao).all()
+        return jsonify({
+            "message": "All products retrieved",
+            "count": len(products),
+            "data": [p.to_dict() for p in products]
+        })
+    except Exception as e:
+        return jsonify({"message": f"Error retrieving products: {str(e)}"}), 500
+
 @app.route('/products', methods=['GET'])
 def get_products():
     """
@@ -154,7 +170,7 @@ def get_products():
     else:
         query = query.order_by(Produto.descricao)
     
-    # Limit results for performance
+    # Limit results for performance (Sales Screen Optimization)
     products = query.limit(20).all()
     
     return jsonify({

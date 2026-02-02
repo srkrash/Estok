@@ -15,10 +15,11 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 
 ## Funcionalidades Principais
 
-### 0. Tela Inicial (Dashboard)
-Ponto de entrada da aplicação.
-- **Dashboard**: Exibe resumo de vendas do dia (Placeholder implementado).
-- **Navegação**: Acesso rápido às telas de Cadastro, Estoque e Vendas.
+### 0. Tela Inicial (Navegação por Abas)
+Estrutura principal da aplicação com persistência de estado.
+- **Menu Superior**: Abas para troca rápida entre módulos (Início, Produtos, Estoque, Vendas).
+- **Dashboard**: Aba inicial com resumo de vendas (Placeholder).
+- **Multitarefa**: Permite alternar entre telas sem perder dados não salvos.
 
 ### 1. Cadastro de Produtos
 Tela para inserção de novos itens no inventário.
