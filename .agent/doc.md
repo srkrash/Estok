@@ -20,6 +20,7 @@ Estrutura principal da aplicação com persistência de estado.
 - **Menu Superior**: Abas para troca rápida entre módulos (Início, Produtos, Estoque, Vendas).
 - **Dashboard**: Aba inicial com resumo de vendas (Placeholder).
 - **Multitarefa**: Permite alternar entre telas sem perder dados não salvos.
+- **Transições**: Animação suave de deslizamento entre as abas e transições visuais nos botões.
 
 ### 1. Cadastro de Produtos
 Tela para inserção de novos itens no inventário.
@@ -57,6 +58,16 @@ Interface ágil para registro de saídas.
         1. Código exato (Barras ou Auxiliar).
         2. Início da descrição (Prefix match).
         3. Contém na descrição param.
+- **Atalhos de Teclado**:
+    - **F1**: Busca (Foca no campo de pesquisa).
+    - **F6**: Finalizar Venda.
+    - **F8**: Cancelar Venda.
+    - **ENTER**:
+        - No campo de busca: Se houver apenas 1 resultado, adiciona direto (Modo Scanner). Se houver lista, seleciona o item.
+        - Na tela de venda finalizada: Inicia uma nova venda.
+    - **ESC**: Fecha overlay de busca ou cancela ações.
+- **Persistência de Estado (Cart)**: O carrinho é mantido ao navegar entre abas (ex: ir ao estoque e voltar), permitindo consultas rápidas sem perder a venda atual.
+- **Feedback Visual**: Overlay de busca posicionado com precisão, loading indicators, e tela de sucesso ao finalizar.
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).

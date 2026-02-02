@@ -25,15 +25,15 @@
     - [x] Navegação para outras telas
 - [x] **Tela: Cadastro de Produtos**
     - [x] Campos: Descrição, EAN13/GTIN, Código Auxiliar, Qtd Inicial, Preço, etc.
-- [ ] **Tela: Atualização de Estoque**
-    - [ ] Interface estilo planilha (DataGrid) para edição rápida
-    - [ ] Funcionalidade de salvar alterações em lote
-- [ ] **Tela: Venda (PDV)**
-    - [ ] Input inteligente (reconhecer padrão `5*PRODUTO`)
-    - [ ] Pesquisa dinâmica ao digitar (Dropdown/Overlay)
-    - [ ] Processamento de input de Código de Barras direto
-    - [ ] Lista de itens na venda atual
-    - [ ] Finalização da venda
+- [x] **Tela: Atualização de Estoque**
+    - [x] Interface estilo planilha (DataGrid) para edição rápida
+    - [x] Funcionalidade de salvar alterações em lote
+- [x] **Tela: Venda (PDV)**
+    - [x] Input inteligente (reconhecer padrão `5*PRODUTO`)
+    - [x] Pesquisa dinâmica ao digitar (Dropdown/Overlay)
+    - [x] Processamento de input de Código de Barras direto
+    - [x] Lista de itens na venda atual
+    - [x] Finalização da venda
 
 ## Build & Deploy
 - [ ] Criar executável do servidor Flask
