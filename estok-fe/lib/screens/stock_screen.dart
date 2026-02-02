@@ -310,7 +310,7 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
                                       DataColumn(label: SizedBox(width: 50, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold)))),
                                       DataColumn(label: SizedBox(width: 300, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold)))),
                                       DataColumn(label: Text('EAN / Cód. Aux', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: SizedBox(width: 100, child: Text('Quantidade Atual', style: TextStyle(fontWeight: FontWeight.bold))), numeric: true),
+                                      DataColumn(label: SizedBox(width: 150, child: Text('Quantidade Atual', style: TextStyle(fontWeight: FontWeight.bold))), numeric: true),
                                     ],
                                     rows: _allProducts.asMap().entries.map((entry) {
                                       final index = entry.key;
@@ -368,7 +368,7 @@ class _StockScreenState extends State<StockScreen> with AutomaticKeepAliveClient
                                             FadeTransition(
                                               opacity: animation,
                                               child: SizedBox(
-                                                width: 100,
+                                                width: 150,
                                                 child: TextFormField(
                                                   key: ValueKey('qty_${product.id}'),
                                                   initialValue: currentVal.toStringAsFixed(0),

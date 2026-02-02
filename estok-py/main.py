@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import or_, case
+from sqlalchemy import or_, case, func, desc, extract
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -326,6 +326,197 @@ def stock_movement():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error registering movement: {str(e)}"}), 500
+
+# --- Dashboard Routes ---
+
+@app.route('/dashboard/summary', methods=['GET'])
+def get_dashboard_summary():
+    """
+    Get Sales and Profit summary for Day, Week, and Month.
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_start = today_start - timedelta(days=7) # Last 7 days
+        month_start = today_start.replace(day=1) # Current Month
+
+        def calculate_metrics(start_date):
+            # Sales Total and Count
+            sales_data = db.session.query(
+                func.sum(Venda.valor_total),
+                func.count(Venda.id)
+            ).filter(Venda.data_venda >= start_date).first()
+            
+            sales_sum = sales_data[0] or 0.0
+            sales_count = sales_data[1] or 0.0
+            
+            # Profit Total: Sum((price - cost) * qty)
+            profit_sum = db.session.query(
+                func.sum((ItemVenda.valor_unitario - ItemVenda.preco_custo) * ItemVenda.quantidade)
+            ).join(Venda).filter(Venda.data_venda >= start_date).scalar() or 0.0
+
+            return float(sales_sum), float(profit_sum), int(sales_count)
+
+        day_sales, day_profit, day_count = calculate_metrics(today_start)
+        week_sales, week_profit, week_count = calculate_metrics(week_start)
+        month_sales, month_profit, month_count = calculate_metrics(month_start)
+
+        return jsonify({
+            "sales": {
+                "today": day_sales,
+                "week": week_sales,
+                "month": month_sales
+            },
+            "profit": {
+                "today": day_profit,
+                "week": week_profit,
+                "month": month_profit
+            },
+            "average_ticket": {
+                "today": day_sales / day_count if day_count > 0 else 0,
+                "week": week_sales / week_count if week_count > 0 else 0,
+                "month": month_sales / month_count if month_count > 0 else 0
+            }
+        })
+
+    except Exception as e:
+        return jsonify({"message": f"Error loading dashboard summary: {str(e)}"}), 500
+
+@app.route('/dashboard/recent-sales', methods=['GET'])
+def get_recent_sales():
+    """
+    Get last 5 sales.
+    """
+    try:
+        recent_sales = Venda.query.order_by(Venda.data_venda.desc()).limit(5).all()
+        # Enrich with item count
+        result = []
+        for sale in recent_sales:
+             s_dict = sale.to_dict()
+             s_dict['items_count'] = len(sale.items)
+             # Simplify items for payload size if needed, but keeping full obj is fine for 5 items
+             result.append(s_dict)
+        
+        return jsonify(result)
+    except Exception as e:
+         return jsonify({"message": f"Error loading recent sales: {str(e)}"}), 500
+
+@app.route('/dashboard/top-products', methods=['GET'])
+def get_top_products():
+    """
+    Get top 5 best selling products in the last 7 days.
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        week_start = now - timedelta(days=7)
+
+        # Query: Sum quantity grouped by Product, ordered by Sum Desc
+        results = db.session.query(
+            Produto.id,
+            Produto.descricao,
+            func.sum(ItemVenda.quantidade).label('total_qty')
+        ).join(ItemVenda, Produto.id == ItemVenda.id_produto)\
+         .join(Venda, ItemVenda.id_venda == Venda.id)\
+         .filter(Venda.data_venda >= week_start)\
+         .group_by(Produto.id)\
+         .order_by(desc('total_qty'))\
+         .limit(5).all()
+
+        data = []
+        for pid, name, qty in results:
+            data.append({
+                "id": pid,
+                "name": name,
+                "quantity_sold": float(qty)
+            })
+            
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({"message": f"Error loading top products: {str(e)}"}), 500
+
+@app.route('/dashboard/inventory-summary', methods=['GET'])
+def get_inventory_summary():
+    """
+    Get Total Inventory Value (Cost) and Sale Potential.
+    """
+    try:
+        # Sum(qty * cost) and Sum(qty * price) for active products
+        metrics = db.session.query(
+            func.sum(Produto.quantidade * Produto.preco_custo),
+            func.sum(Produto.quantidade * Produto.preco_venda),
+            func.sum(Produto.quantidade)
+        ).filter(Produto.ativo == True).first()
+
+        total_cost = metrics[0] or 0.0
+        total_price = metrics[1] or 0.0
+        total_items = metrics[2] or 0.0
+
+        return jsonify({
+            "total_cost_value": float(total_cost),
+            "total_sale_potential": float(total_price),
+            "total_items": float(total_items)
+        })
+    except Exception as e:
+        return jsonify({"message": f"Error loading inventory summary: {str(e)}"}), 500
+
+@app.route('/dashboard/smart-alerts', methods=['GET'])
+def get_smart_alerts():
+    """
+    Get products with low stock based on sales velocity (last 30 days coverage < 7 days).
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        start_30d = now - timedelta(days=30)
+        
+        # 1. Get Sales Volume per Product (Last 30 days)
+        # We need a subquery for this Aggregation
+        sales_subquery = db.session.query(
+            ItemVenda.id_produto,
+            func.sum(ItemVenda.quantidade).label('sold_30d')
+        ).join(Venda).filter(Venda.data_venda >= start_30d)\
+         .group_by(ItemVenda.id_produto).subquery()
+
+        # 2. Join with Products and Filter
+        # Select products where: stock / (sold_30d / 30) < 7
+        # Equivalent to: stock * 30 / sold_30d < 7
+        # Or more simply: sold/30 = daily_rate. days_coverage = stock / daily_rate.
+        
+        products = db.session.query(
+            Produto,
+            sales_subquery.c.sold_30d
+        ).outerjoin(sales_subquery, Produto.id == sales_subquery.c.id_produto)\
+         .filter(Produto.ativo == True)\
+         .filter(Produto.quantidade > 0).all() # Only care about items we actually have or are tracking? 
+         # Actually we care about items that are Running Out. If qty=0, coverage is 0. 
+        
+        alerts = []
+        for product, sold_30d in products:
+            qty = float(product.quantidade or 0)
+            sold = float(sold_30d or 0)
+            
+            if sold <= 0:
+                continue # No sales, infinite coverage (or stagnant stock, different problem)
+
+            daily_avg = sold / 30.0
+            days_coverage = qty / daily_avg
+            
+            if days_coverage < 7.0:
+                alerts.append({
+                    "id": product.id,
+                    "name": product.descricao,
+                    "current_stock": qty,
+                    "daily_average": daily_avg,
+                    "days_supply": days_coverage
+                })
+        
+        # Sort by most critical (lowest days supply)
+        alerts.sort(key=lambda x: x['days_supply'])
+        
+        return jsonify(alerts)
+
+    except Exception as e:
+        return jsonify({"message": f"Error loading smart alerts: {str(e)}"}), 500
 
 # --- Sales Routes ---
 

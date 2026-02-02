@@ -17,11 +17,20 @@
 - [x] Endpoint: Atualização de Estoque (PUT/PATCH) - (Via PUT /products/<id> para edição básica, movimentação via /estok/movement implementada)
 - [x] Endpoint: Registro de Venda (POST - Movimentação de saída)
 - [x] Criar lógica de busca "Consultar a cada letra" (Prioridade: Exato > Inicio > Contém)
+- [x] Endpoint: Dashboard Summary (Vendas/Lucro Dia, Sem, Mês)
+- [x] Endpoint: Dashboard Recent Sales
+- [x] Endpoint: Dashboard Top Products
+
+- [x] Endpoint: Dashboard Inventory Summary (Patrimônio)
+- [x] Endpoint: Dashboard Smart Alerts (Estoque < Média Vendas)
+- [x] Endpoint: Update Dashboard Summary with Average Ticket
 
 ## Frontend (Flutter Desktop)
 - [x] Criar projeto Flutter para Windows
 - [x] **Tela Inicial (Home)**
-    - [x] Implementar Dashboard (Placeholder)
+    - [x] Implementar Dashboard Real (Vendas, Lucro, Top Produtos, Últimas Vendas)
+    - [x] Implementar Widget Smart Alerts (Estoque Baixo)
+    - [x] Implementar Widget Patrimônio & Potencial de Venda
     - [x] Navegação para outras telas
 - [x] **Tela: Cadastro de Produtos**
     - [x] Campos: Descrição, EAN13/GTIN, Código Auxiliar, Qtd Inicial, Preço, etc.

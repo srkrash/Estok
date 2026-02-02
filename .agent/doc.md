@@ -17,8 +17,8 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 
 ### 0. Tela Inicial (Navegação por Abas)
 Estrutura principal da aplicação com persistência de estado.
-- **Menu Superior**: Header unificado com Logo à esquerda e Navegação centralizada.
-- **Dashboard**: Aba inicial com resumo de vendas (Placeholder).
+- **Menu Superior**: Header unificado com Logo à esquerda e Navegação centralizada com abas coloridas.
+- **Dashboard**: Aba inicial com KPIs de Vendas e Lucro (Dia, Semana, Mês), Lista de Últimas Vendas e Top Produtos.
 - **Multitarefa**: Permite alternar entre telas sem perder dados não salvos.
 - **Transições**: Animação suave de deslizamento entre as abas e transições visuais nos botões.
 
@@ -122,3 +122,22 @@ Sistema de notificação global (`EventService`) que mantém todas as telas atua
         - `items`: Lista de objetos `{id_produto, quantidade, valor_unitario}`.
         - `valor_total`: Valor total da venda.
     - **Retorno**: ID da venda gerada.
+
+### Dashboard
+- `GET /dashboard/summary`
+    - **Retorno**: 
+      ```json
+      {
+        "sales": {"today": float, "week": float, "month": float},
+        "profit": {"today": float, "week": float, "month": float}
+      }
+      ```
+- `GET /dashboard/recent-sales`
+    - **Retorno**: Lista das 5 últimas vendas.
+- `GET /dashboard/top-products`
+    - **Retorno**: Lista dos 5 produtos mais vendidos na semana.
+- `GET /dashboard/inventory-summary`
+    - **Retorno**: `{ "total_cost_value": float, "total_sale_potential": float, "total_items": float }`
+- `GET /dashboard/smart-alerts`
+    - **Lógica**: Identifica produtos com cobertura de estoque < 7 dias (baseado na média de vendas dos últimos 30 dias).
+    - **Retorno**: Lista de produtos críticos.
