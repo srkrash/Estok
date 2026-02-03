@@ -19,16 +19,27 @@ O sistema opera em uma arquitetura híbrida standalone:
 *   **Smart Alerts**: Monitoramento de saldo de estoque, alertando para produtos com cobertura menor que 7 dias (baseado na média de vendas dos últimos 30 dias).
 *   **Top Produtos**: Visualização rápida dos itens mais vendidos.
 
+![Dashboard](https://i.imgur.com/LXYG9JF.png)
+
+
 ### 📦 Gestão de Produtos
 *   **Cadastro Completo**: Suporte a código de barras (EAN13) e código auxiliar curto (3-6 dígitos).
 *   **Edição em Massa**: Interface tabular ("Excel-like") para ajustes rápidos de estoque, com proteção contra perda de dados não salvos.
 *   **Design Responsivo**: Formulários que se adaptam a diferentes tamanhos de janela (80% a 100% de largura).
+
+![Lista de Produtos](https://i.imgur.com/MgfprAC.png)
+![Formulário de Produto](https://i.imgur.com/9VWJkNg.png)
+![Atualização em Lote](https://i.imgur.com/0aV9vD0.png)
+
 
 ### 🛒 Ponto de Venda (PDV)
 *   **Foco na Agilidade**: Projetado para operação rápida com atalhos de teclado (`F1` Busca, `F6` Finalizar, `F8` Cancelar).
 *   **Busca "Type-Ahead"**: Pesquisa instantânea por nome ou código a cada letra digitada.
 *   **Entrada Inteligente**: Reconhece comandos multiplicadores (ex: `5*AGUA`) para adicionar múltiplos itens.
 *   **Multitarefa**: O carrinho de vendas persiste ao navegar entre outras abas do sistema.
+
+![Ponto de Venda](https://i.imgur.com/DuLX7ow.png)
+
 
 ### 🔄 Sincronização em Tempo Real
 *   Sistema orientado a eventos que mantém todas as telas sincronizadas.
@@ -37,6 +48,9 @@ O sistema opera em uma arquitetura híbrida standalone:
 ### ⚙️ Server Manager & Configuração
 *   Aplicativo de bandeja para gerenciar o servidor Flask.
 *   Configuração dinâmica de conexão com o banco de dados via interface gráfica, persistindo preferências em JSON.
+
+![Server Manager](https://i.imgur.com/zhG0RBj.png)
+
 
 ## 🛠️ Stack Tecnológico
 
