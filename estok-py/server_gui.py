@@ -122,7 +122,12 @@ class ServerManagerApp:
         self.entry_dbname.insert(0, config.get('dbname', 'estok'))
         self.entry_dbname.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
 
-        tk.Button(config_frame, text="Save Configuration", command=self.save_configuration, bg="#dddddd").grid(row=3, column=0, columnspan=4, pady=10, sticky="ew")
+        tk.Label(config_frame, text="API Key:").grid(row=3, column=0, sticky="e", padx=5, pady=2)
+        self.entry_api_key = tk.Entry(config_frame)
+        self.entry_api_key.insert(0, config.get('api_key', ''))
+        self.entry_api_key.grid(row=3, column=1, columnspan=3, sticky="ew", padx=5, pady=2)
+
+        tk.Button(config_frame, text="Save Configuration", command=self.save_configuration, bg="#dddddd").grid(row=4, column=0, columnspan=4, pady=10, sticky="ew")
 
         config_frame.columnconfigure(1, weight=1)
 
@@ -132,7 +137,8 @@ class ServerManagerApp:
             'port': self.entry_port.get(),
             'user': self.entry_user.get(),
             'password': self.entry_pass.get(),
-            'dbname': self.entry_dbname.get()
+            'dbname': self.entry_dbname.get(),
+            'api_key': self.entry_api_key.get()
         }
         
         success, msg = config_manager.save_config(config)

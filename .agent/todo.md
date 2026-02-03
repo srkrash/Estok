@@ -24,6 +24,7 @@
 - [x] Endpoint: Dashboard Inventory Summary (Patrimônio)
 - [x] Endpoint: Dashboard Smart Alerts (Estoque < Média Vendas)
 - [x] Endpoint: Update Dashboard Summary with Average Ticket
+- [x] Implementar autenticação via API Key (Middleware e Headers)
 
 ## Frontend (Flutter Desktop)
 - [x] Criar projeto Flutter para Windows

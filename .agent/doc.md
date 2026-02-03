@@ -103,16 +103,21 @@ Sistema de notificação global (`EventService`) que mantém todas as telas atua
 ### 6. Configuração e Persistência
 O sistema permite configuração dinâmica de conexões. 
 - **Server Manager**: 
-    - Interface: Host, Porta, Usuário, Senha, DB Name.
+    - Interface: Host, Porta, Usuário, Senha, DB Name, **API Key**.
     - **Lógica de Persistência (Ordem de Prioridade)**:
         1. **`%LOCALAPPDATA%\Estok\db_config.json`**: Configuração personalizada do usuário (criada via GUI).
         2. **`Pasta da Aplicação\db_config.json`**: "Padrão de Fábrica" distribuído com o instalador (editável pelo admin).
         3. **Hardcoded Defaults**: `localhost:5432` / `postgres` / `estok`.
+    - **API Key**: Gerada automaticamente na primeira execução se não existir. Necessária para todas as requisições do Client.
     - Codificação: `UTF-8` forçado para suportar senhas com caracteres especiais.
 - **Frontend App**:
     - Tela de Configurações (ícone de engrenagem na Home).
-    - Permite definir Host e Porta da API Flask.
+    - Permite definir Host, Porta e **API Key** da API Flask.
     - Persiste via `SharedPreferences` (armazenamento nativo do SO).
+
+### 7. Segurança
+- **Autenticação**: Todas as chamadas API (exceto OPTIONS e /) exigem o header `X-API-KEY`.
+- A chave deve ser copiada do Server Manager e inserida nas configurações do Client.
 
 ## Endpoints API (Flask)
 

@@ -11,6 +11,7 @@ class ConfigScreen extends StatefulWidget {
 class _ConfigScreenState extends State<ConfigScreen> {
   final TextEditingController _hostController = TextEditingController();
   final TextEditingController _portController = TextEditingController();
+  final TextEditingController _apiKeyController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -22,6 +23,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   void _loadCurrentConfig() {
     _hostController.text = AppConfig.host;
     _portController.text = AppConfig.port;
+    _apiKeyController.text = AppConfig.apiKey;
   }
 
   Future<void> _saveConfig() async {
@@ -30,7 +32,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     });
 
     try {
-      await AppConfig.save(_hostController.text, _portController.text);
+      await AppConfig.save(_hostController.text, _portController.text, _apiKeyController.text);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Configuração salva com sucesso! Reinicie o aplicativo para aplicar algumas mudanças.')),
@@ -84,6 +86,15 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 labelText: 'Porta',
                 border: OutlineInputBorder(),
                 hintText: 'ex: 5000',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _apiKeyController,
+              decoration: const InputDecoration(
+                labelText: 'API Key (Chave do Servidor)',
+                border: OutlineInputBorder(),
+                hintText: 'Cole a chave gerada pelo servidor aqui',
               ),
             ),
             const SizedBox(height: 32),

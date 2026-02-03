@@ -7,8 +7,16 @@ import 'event_service.dart';
 class ProductService {
   String get baseUrl => AppConfig.apiUrl;
 
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'X-API-KEY': AppConfig.apiKey,
+  };
+
   Future<List<Product>> getAllProducts() async {
-    final response = await http.get(Uri.parse('$baseUrl/products/all'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/products/all'),
+      headers: _headers,
+    );
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> body = jsonDecode(response.body);
@@ -20,7 +28,10 @@ class ProductService {
   }
 
   Future<List<Product>> searchProducts(String query) async {
-    final response = await http.get(Uri.parse('$baseUrl/products?q=$query'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/products?q=$query'),
+      headers: _headers,
+    );
 
     if (response.statusCode == 200) {
        final Map<String, dynamic> body = jsonDecode(response.body);
@@ -34,7 +45,7 @@ class ProductService {
   Future<Product> createProduct(Product product) async {
     final response = await http.post(
       Uri.parse('$baseUrl/products'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode(product.toJson()),
     );
 
@@ -52,7 +63,7 @@ class ProductService {
 
     final response = await http.put(
       Uri.parse('$baseUrl/products/${product.id}'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode(product.toJson()),
     );
 
@@ -68,7 +79,7 @@ class ProductService {
   Future<void> adjustStock(int productId, double newQuantity, {String? observation}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/estok/movement'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode({
         'id_produto': productId,
         'tipo': 'AJUSTE',

@@ -2,6 +2,7 @@ import json
 import os
 import urllib.parse
 import sys
+import secrets
 
 # Default Configuration
 DEFAULT_CONFIG = {
@@ -9,7 +10,8 @@ DEFAULT_CONFIG = {
     'port': '5432',
     'user': 'postgres',
     'password': 'postgres',
-    'dbname': 'estok'
+    'dbname': 'estok',
+    'api_key': '' 
 }
 
 def get_user_config_path():
@@ -39,27 +41,53 @@ def get_install_config_path():
     return os.path.join(base_dir, 'db_config.json')
 
 def load_config():
-    """Load configuration: User Config > Bundled Config > Defaults."""
+    """Load configuration: User Config > Bundled Config > Defaults. Also ensures API Key exists."""
+    config = DEFAULT_CONFIG.copy()
+    
     # 1. Try User Config (AppData)
     user_path = get_user_config_path()
     if os.path.exists(user_path):
         try:
             with open(user_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                user_config = json.load(f)
+                config.update(user_config)
         except Exception as e:
             print(f"Error loading user config: {e}")
 
-    # 2. Try Install Dir Config (Reference)
+    # 2. If User Config didn't specific keys but Install Config does? 
+    # Actually, standard pattern is User Config overrides everything.
+    # But if User Config is missing, we check Install Config.
+    # The current logic was a bit simplified. Let's stick to "Load User, if not, Load Install, if not Default".
+    # BUT, we also want to Merge defaults if keys are missing.
+    
+    # Let's refine: Start with Defaults. Update with Install. Update with User.
+    
     install_path = get_install_config_path()
     if os.path.exists(install_path):
         try:
             with open(install_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                install_config = json.load(f)
+                config.update(install_config)
         except Exception as e:
             print(f"Error loading bundled config: {e}")
 
-    # 3. Defaults
-    return DEFAULT_CONFIG
+    if os.path.exists(user_path):
+        try:
+            with open(user_path, 'r', encoding='utf-8') as f:
+                user_config = json.load(f)
+                config.update(user_config)
+        except Exception as e:
+            print(f"Error loading user config: {e}")
+
+    # Ensure API Key exists
+    if not config.get('api_key'):
+        # Generate new Key
+        new_key = secrets.token_hex(32) # 64 characters
+        config['api_key'] = new_key
+        # Save it immediately to User Config so it persists
+        save_config(config)
+
+    return config
 
 def save_config(config):
     """Save configuration to User Config (AppData). Returns (success, message)."""
@@ -85,3 +113,8 @@ def get_db_uri():
     dbname = config.get('dbname', 'estok')
     
     return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+
+def get_api_key():
+    """Get the current API Key."""
+    config = load_config()
+    return config.get('api_key', '')

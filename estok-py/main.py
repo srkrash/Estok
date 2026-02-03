@@ -18,6 +18,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+@app.before_request
+def check_api_key():
+    # Allow OPTIONS requests (CORS preflight if needed, though mostly for browsers)
+    if request.method == 'OPTIONS':
+        return 
+    
+    # Allow root route for simple connectivity check
+    if request.path == '/':
+        return
+
+    expected_key = config_manager.get_api_key()
+    if not expected_key:
+        # Should not happen given config_manager logic, but safer to block or log
+        return jsonify({"message": "Server misconfiguration: API Key missing"}), 500
+
+    client_key = request.headers.get('X-API-KEY')
+    if not client_key or client_key != expected_key:
+        return jsonify({"message": "Unauthorized: Invalid or missing API Key"}), 401
+
 # --- Models ---
 
 class Produto(db.Model):

@@ -11,7 +11,10 @@ class SalesService {
   Future<Map<String, dynamic>> registerSale(List<SaleItem> items, double totalValue) async {
     final response = await http.post(
       Uri.parse('$baseUrl/sales'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': AppConfig.apiKey,
+      },
       body: jsonEncode({
         'items': items.map((e) => e.toJson()).toList(),
         'valor_total': totalValue,
