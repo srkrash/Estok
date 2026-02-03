@@ -1,4 +1,10 @@
-# Estok - Sistema de Controle de Estoque e Vendas
+<div align="center">
+  <img src="https://i.imgur.com/S4ZKxkx.png" alt="Estok Logo" width="150"/>
+  <h1>Estok</h1>
+</div>
+
+Estok - Sistema de Controle de Estoque e Vendas
+
 
 ![Status](https://img.shields.io/badge/Status-Desenvolvimento-green)
 ![Version](https://img.shields.io/badge/Versão-0.1.0-blue)
