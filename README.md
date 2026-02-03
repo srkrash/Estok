@@ -55,9 +55,25 @@ flutter pub get
 flutter run -d windows
 ```
 
+## Configuração
+
+O sistema permite a configuração dinâmica das conexões, sem necessidade de alterar código:
+
+### Backend (Server Manager)
+- Ao iniciar o servidor (`estok-server.exe`), utilize a interface gráfica para definir:
+  - **Host, Porta, Usuário, Senha e Nome do Banco**: Credenciais do PostgreSQL.
+- As configurações são salvas automaticamente em:
+  - `%LOCALAPPDATA%\Estok\db_config.json` (Prioritário - Usuário)
+  - `Pasta de Instalação\db_config.json` (Padrão de Fábrica)
+
+### Frontend (Client)
+- No aplicativo (`stock_fe.exe`), acesse o ícone de engrenagem no canto superior direito.
+- Defina o **IP do Servidor** e a **Porta** (padrão 5000).
+- As configurações são persistidas localmente no dispositivo.
+
 ## Roadmap
 
 Os próximos passos do desenvolvimento incluem:
 - **Atualização em Lote**: Interface estilo planilha para ajustes rápidos de estoque.
 - **PDV (Ponto de Venda)**: Frente de caixa com atalhos de teclado e fluxo de venda ágil.
-- **Distribuição**: Empacotamento em executáveis (.exe) para fácil instalação.
+- **Distribuição**: Empacotamento em executáveis (.exe) já implementado.

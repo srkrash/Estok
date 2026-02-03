@@ -101,15 +101,18 @@ Sistema de notificação global (`EventService`) que mantém todas as telas atua
 - **Banco de Dados**: Persiste produtos, movimentações e vendas.
 
 ### 6. Configuração e Persistência
-O sistema permite configuração dinâmica de conexões sem necessidade de recompilação:
+O sistema permite configuração dinâmica de conexões. 
 - **Server Manager**: 
-    - Interface para configurar conexão com PostgreSQL (Host, Porta, Usuário, Senha, Nome do Banco).
-    - Salva em `db_config.json`.
-    - Permite testar conexão e inicializar banco (Schema) via UI.
+    - Interface: Host, Porta, Usuário, Senha, DB Name.
+    - **Lógica de Persistência (Ordem de Prioridade)**:
+        1. **`%LOCALAPPDATA%\Estok\db_config.json`**: Configuração personalizada do usuário (criada via GUI).
+        2. **`Pasta da Aplicação\db_config.json`**: "Padrão de Fábrica" distribuído com o instalador (editável pelo admin).
+        3. **Hardcoded Defaults**: `localhost:5432` / `postgres` / `estok`.
+    - Codificação: `UTF-8` forçado para suportar senhas com caracteres especiais.
 - **Frontend App**:
     - Tela de Configurações (ícone de engrenagem na Home).
     - Permite definir Host e Porta da API Flask.
-    - Persiste configurações localmente.
+    - Persiste via `SharedPreferences` (armazenamento nativo do SO).
 
 ## Endpoints API (Flask)
 
