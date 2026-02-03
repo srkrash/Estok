@@ -1,79 +1,115 @@
-# Estok
+# Estok - Sistema de Controle de Estoque e Vendas
 
-Sistema de controle de estoque e vendas desenvolvido para desktop Windows, com foco em simplicidade e performance. O projeto utiliza uma arquitetura híbrida com **Flutter** no frontend e **Python (Flask)** no backend.
+![Status](https://img.shields.io/badge/Status-Desenvolvimento-green)
+![Version](https://img.shields.io/badge/Versão-0.1.0-blue)
+![Stack](https://img.shields.io/badge/Stack-Flutter%20%7C%20Flask%20%7C%20PostgreSQL-orange)
 
-## Funcionalidades
+**Estok** é uma solução robusta e moderna para controle de estoque e vendas, projetada para desktop Windows. Combinando a agilidade do **Flutter** no frontend e a flexibilidade do **Python (Flask)** no backend, o sistema oferece uma experiência de usuário fluida, responsiva e focada em performance.
 
-- **Gestão de Produtos**: Cadastro detalhado com suporte a código de barras (EAN13) e códigos auxiliares.
-- **Movimentação de Estoque**: Registros automáticos de entrada, saída e ajustes.
-- **Interface Responsiva**: Design adaptável que flui entre 80% e 100% da largura da tela.
-- **Navegação em Abas**: Multitarefa eficiente permitindo alternar entre módulos sem perder o contexto.
-- **Busca Inteligente**: Pesquisa de produtos otimizada ("type-ahead") por nome ou código.
+## 🚀 Visão Geral
 
-## Tecnologias
+O sistema opera em uma arquitetura híbrida standalone:
+*   **Servidor Local**: Uma API RESTful em Flask e banco de dados PostgreSQL rodam localmente na máquina do cliente, gerenciados por um *Server Manager* com ícone na bandeja do sistema.
+*   **Cliente Desktop**: Interface desenvolvida em Flutter, comunicando-se via HTTP com o servidor local.
 
-- **Frontend**: [Flutter](https://flutter.dev) (Windows Desktop)
-- **Backend**: [Python Flask](https://flask.palletsprojects.com)
-- **Banco de Dados**: [PostgreSQL](https://www.postgresql.org)
+## ✨ Funcionalidades Principais
 
-## Estrutura do Projeto
+### 📊 Dashboard Inteligente
+*   **KPIs em Tempo Real**: Vendas do dia, semana e mês, lucro estimado e ticket médio.
+*   **Smart Alerts**: Monitoramento de saldo de estoque, alertando para produtos com cobertura menor que 7 dias (baseado na média de vendas dos últimos 30 dias).
+*   **Top Produtos**: Visualização rápida dos itens mais vendidos.
 
-- `estok-fe/`: Código fonte do frontend em Flutter.
-- `estok-py/`: API RESTful em Python/Flask.
-- `estok-db/`: Scripts de inicialização e schema do banco de dados.
+### 📦 Gestão de Produtos
+*   **Cadastro Completo**: Suporte a código de barras (EAN13) e código auxiliar curto (3-6 dígitos).
+*   **Edição em Massa**: Interface tabular ("Excel-like") para ajustes rápidos de estoque, com proteção contra perda de dados não salvos.
+*   **Design Responsivo**: Formulários que se adaptam a diferentes tamanhos de janela (80% a 100% de largura).
 
-## Como Rodar
+### 🛒 Ponto de Venda (PDV)
+*   **Foco na Agilidade**: Projetado para operação rápida com atalhos de teclado (`F1` Busca, `F6` Finalizar, `F8` Cancelar).
+*   **Busca "Type-Ahead"**: Pesquisa instantânea por nome ou código a cada letra digitada.
+*   **Entrada Inteligente**: Reconhece comandos multiplicadores (ex: `5*AGUA`) para adicionar múltiplos itens.
+*   **Multitarefa**: O carrinho de vendas persiste ao navegar entre outras abas do sistema.
+
+### 🔄 Sincronização em Tempo Real
+*   Sistema orientado a eventos que mantém todas as telas sincronizadas.
+*   Uma venda realizada no PDV atualiza imediatamente a listagem de estoque e o dashboard, sem necessidade de refresh manual.
+
+### ⚙️ Server Manager & Configuração
+*   Aplicativo de bandeja para gerenciar o servidor Flask.
+*   Configuração dinâmica de conexão com o banco de dados via interface gráfica, persistindo preferências em JSON.
+
+## 🛠️ Stack Tecnológico
+
+| Componente | Tecnologia | Detalhes |
+| :--- | :--- | :--- |
+| **Frontend** | [Flutter](https://flutter.dev) | Windows Desktop, Design Material 3 |
+| **Backend** | [Python Flask](https://flask.palletsprojects.com) | REST API, SQLAlchemy |
+| **Banco de Dados** | [PostgreSQL](https://www.postgresql.org) | Relacional, robusto e escalável |
+| **Instalador** | Inno Setup | Empacotamento profissional para Windows |
+
+## 💻 Instalação e Execução (Desenvolvimento)
+
+Para rodar o projeto em ambiente de desenvolvimento:
 
 ### Pré-requisitos
-- Python 3.x
-- Flutter SDK
-- PostgreSQL instalado e rodando
+*   [Python 3.10+](https://www.python.org/)
+*   [Flutter SDK](https://docs.flutter.dev/get-started/install)
+*   [PostgreSQL](https://www.postgresql.org/download/)
 
-### 1. Configurar Banco de Dados
-Crie um banco de dados chamado `estok` e execute o script de schema:
+### 1. Banco de Dados
+Crie um banco de dados chamado `estok` e execute o script de inicialização:
 ```bash
 psql -U postgres -d estok -f estok-db/schema.sql
 ```
 
-### 2. Executar Backend
+### 2. Backend (Flask)
 ```bash
 cd estok-py
-# Crie e ative um ambiente virtual (opcional mas recomendado)
+# Criar e ativar virtualenv
 python -m venv venv
-# Windows:
 .\venv\Scripts\activate
-# Instale as dependências
+
+# Instalar dependências
 pip install -r requirements.txt
-# Execute o servidor
+
+# Rodar servidor
 python main.py
 ```
+> O servidor rodará em `http://127.0.0.1:5000`
 
-### 3. Executar Frontend
+### 3. Frontend (Flutter)
 ```bash
 cd estok-fe
 flutter pub get
 flutter run -d windows
 ```
 
-## Configuração
+## 📦 Build & Deploy
 
-O sistema permite a configuração dinâmica das conexões, sem necessidade de alterar código:
+Instruções para gerar os executáveis de produção.
 
-### Backend (Server Manager)
-- Ao iniciar o servidor (`estok-server.exe`), utilize a interface gráfica para definir:
-  - **Host, Porta, Usuário, Senha e Nome do Banco**: Credenciais do PostgreSQL.
-- As configurações são salvas automaticamente em:
-  - `%LOCALAPPDATA%\Estok\db_config.json` (Prioritário - Usuário)
-  - `Pasta de Instalação\db_config.json` (Padrão de Fábrica)
+### Backend
+Dentro do ambiente virtual:
+```bash
+cd estok-py
+pyinstaller --noconsole --onefile --name estok-server --add-data "logo_green.ico;." --add-data "logo_green_tray.png;." server_gui.py
+```
 
-### Frontend (Client)
-- No aplicativo (`stock_fe.exe`), acesse o ícone de engrenagem no canto superior direito.
-- Defina o **IP do Servidor** e a **Porta** (padrão 5000).
-- As configurações são persistidas localmente no dispositivo.
+### Frontend
+```bash
+cd estok-fe
+flutter build windows --release
+```
 
-## Roadmap
+### Instalador
+Utilize o script `estok_installer.iss` com o **Inno Setup** para compilar o instalador único que configura o ambiente e cria os atalhos.
 
-Os próximos passos do desenvolvimento incluem:
-- **Atualização em Lote**: Interface estilo planilha para ajustes rápidos de estoque.
-- **PDV (Ponto de Venda)**: Frente de caixa com atalhos de teclado e fluxo de venda ágil.
-- **Distribuição**: Empacotamento em executáveis (.exe) já implementado.
+## 📂 Estrutura do Projeto
+
+*   `estok-fe/`: Código fonte Flutter (Interface).
+*   `estok-py/`: Código fonte Python (API e Tray App).
+*   `estok-db/`: Scripts SQL e migracoes.
+*   `.agent/`: Documentação interna e logs de desenvolvimento.
+
+---
+*Desenvolvido com foco em eficiência e usabilidade.*
