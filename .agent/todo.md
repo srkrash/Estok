@@ -54,5 +54,11 @@
     - [x] Indicativo visual de servidor rodando (Status Label/Icon)
 
 ## Build & Deploy
-- [ ] Criar executável do servidor Flask
-- [ ] Criar instalador/executável do cliente Flutter Windows
+- [x] Criar executável do servidor Flask
+- [x] Criar instalador/executável do cliente Flutter Windows
+
+## Configuração Dinâmica
+- [x] **Backend**: Criar UI em `server_gui.py` para definir Host, Porta, User, Pass, DB do PostgreSQL.
+- [x] **Backend**: Persistir configurações em `db_config.json`.
+- [x] **Frontend**: Criar tela de configurações de API (Host/Porta).
+- [x] **Frontend**: Persistir URL da API via SharedPreferences.

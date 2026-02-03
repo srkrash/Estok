@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'product_screen.dart';
 import 'stock_screen.dart';
 import 'sales_screen.dart';
+import 'config_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,28 +59,37 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               // Logo / Title on the left
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  const Text(
-                    'Estok',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900, 
-                      fontSize: 28,
-                      letterSpacing: -0.5,
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 48,
                     ),
-                  ),
-                  Text(
-                    'Gestão Inteligente',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Estok',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900, 
+                            fontSize: 28,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Gestão Inteligente',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               
               const Spacer(),
               
@@ -136,7 +146,18 @@ class _HomeScreenState extends State<HomeScreen> {
               
               // Balancing widget or Actions (e.g. User Profile or Settings placeholder)
               // For now, just a SizedBox to balance the Logo width roughly, keeping tabs centered
-              const SizedBox(width: 100), 
+               // Balancing widget or Actions
+              IconButton( // Replace SizedBox logic with actual button
+                icon: const Icon(Icons.settings, color: Colors.grey),
+                tooltip: 'Configurações',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ConfigScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 16),
             ],
           ),
         ),

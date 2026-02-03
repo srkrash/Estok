@@ -1,12 +1,12 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../utils/app_config.dart';
 import '../models/sale_item.dart';
 import 'event_service.dart';
 
 class SalesService {
-  final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:5000';
+  String get baseUrl => AppConfig.apiUrl;
 
   Future<Map<String, dynamic>> registerSale(List<SaleItem> items, double totalValue) async {
     final response = await http.post(

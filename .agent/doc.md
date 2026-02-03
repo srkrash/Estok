@@ -11,8 +11,15 @@ Aplicação de controle de estoque e vendas focado em desktop Windows (com futur
 ## Arquitetura
 - Aplicação Desktop Standalone.
 - **Server Manager**: Aplicação de bandeja (Tray App) para gerenciamento do servidor Flask e Banco de Dados.
-- Servidor Flask será compilado para executável.
+- Servidor Flask será compilado para executável (`estok-server.exe`).
+- Client Frontend: Flutter (Windows Desktop), gera executável principal (ex: `stock_fe.exe`), acessível via atalhos "Estok Client".
 - Comunicação via HTTP REST API (localhost).
+
+## Build & Deploy
+Para gerar os executáveis e o instalador:
+1. **Backend**: `pyinstaller --noconsole --onefile --name estok-server --add-data "logo_green.ico;." --add-data "logo_green_tray.png;." server_gui.py` (dentro do `venv`).
+2. **Frontend**: `flutter build windows --release`.
+3. **Instalador**: Compilar `estok_installer.iss` usando Inno Setup. O instalador configura idioma PT-BR e cria atalhos na Área de Trabalho para Server e Client.
 
 ## Funcionalidades Principais
 
@@ -91,7 +98,18 @@ Sistema de notificação global (`EventService`) que mantém todas as telas atua
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).
-- **Banco de Dados**: Deve persistir dados de produtos e histórico de vendas? (A princípio focado em controle de estoque e registro de saída).
+- **Banco de Dados**: Persiste produtos, movimentações e vendas.
+
+### 6. Configuração e Persistência
+O sistema permite configuração dinâmica de conexões sem necessidade de recompilação:
+- **Server Manager**: 
+    - Interface para configurar conexão com PostgreSQL (Host, Porta, Usuário, Senha, Nome do Banco).
+    - Salva em `db_config.json`.
+    - Permite testar conexão e inicializar banco (Schema) via UI.
+- **Frontend App**:
+    - Tela de Configurações (ícone de engrenagem na Home).
+    - Permite definir Host e Porta da API Flask.
+    - Persiste configurações localmente.
 
 ## Endpoints API (Flask)
 

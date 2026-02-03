@@ -11,6 +11,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy import text
 from werkzeug.serving import make_server
+import config_manager
 
 # Add current directory to path to import main
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +26,11 @@ class ServerManagerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Estok Server Manager")
-        self.root.geometry("500x400")
+        self.root.geometry("500x650")
+        try:
+            self.root.iconbitmap("logo_green.ico")
+        except Exception as e:
+            print(f"Icon load error: {e}")
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
 
         # Server State
@@ -55,8 +60,11 @@ class ServerManagerApp:
         self.status_indicator = tk.Label(status_frame, text="STOPPED", fg="red", font=("Arial", 10, "bold"))
         self.status_indicator.pack(side=tk.LEFT)
 
+        # Configuration Frame
+        self.create_config_widgets()
+
         # Controls Frame
-        controls_frame = tk.LabelFrame(self.root, text="Controls", padx=10, pady=10)
+        controls_frame = tk.LabelFrame(self.root, text="Server Controls", padx=10, pady=10)
         controls_frame.pack(fill=tk.X, padx=10, pady=5)
 
         self.btn_start = tk.Button(controls_frame, text="Start Server", command=self.start_server, bg="#dddddd")
@@ -82,6 +90,64 @@ class ServerManagerApp:
         self.log_area = scrolledtext.ScrolledText(log_frame, height=10, state='disabled', font=("Consolas", 9))
         self.log_area.pack(fill=tk.BOTH, expand=True)
 
+    def create_config_widgets(self):
+        config_frame = tk.LabelFrame(self.root, text="Database Configuration", padx=10, pady=10)
+        config_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        # Grid layout for config
+        config = config_manager.load_config()
+
+        tk.Label(config_frame, text="Host:").grid(row=0, column=0, sticky="e", padx=5, pady=2)
+        self.entry_host = tk.Entry(config_frame)
+        self.entry_host.insert(0, config.get('host', 'localhost'))
+        self.entry_host.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+
+        tk.Label(config_frame, text="Port:").grid(row=0, column=2, sticky="e", padx=5, pady=2)
+        self.entry_port = tk.Entry(config_frame, width=10)
+        self.entry_port.insert(0, config.get('port', '5432'))
+        self.entry_port.grid(row=0, column=3, sticky="ew", padx=5, pady=2)
+
+        tk.Label(config_frame, text="User:").grid(row=1, column=0, sticky="e", padx=5, pady=2)
+        self.entry_user = tk.Entry(config_frame)
+        self.entry_user.insert(0, config.get('user', 'postgres'))
+        self.entry_user.grid(row=1, column=1, sticky="ew", padx=5, pady=2)
+
+        tk.Label(config_frame, text="Password:").grid(row=1, column=2, sticky="e", padx=5, pady=2)
+        self.entry_pass = tk.Entry(config_frame, show="*")
+        self.entry_pass.insert(0, config.get('password', 'postgres'))
+        self.entry_pass.grid(row=1, column=3, sticky="ew", padx=5, pady=2)
+
+        tk.Label(config_frame, text="DB Name:").grid(row=2, column=0, sticky="e", padx=5, pady=2)
+        self.entry_dbname = tk.Entry(config_frame)
+        self.entry_dbname.insert(0, config.get('dbname', 'estok'))
+        self.entry_dbname.grid(row=2, column=1, sticky="ew", padx=5, pady=2)
+
+        tk.Button(config_frame, text="Save Configuration", command=self.save_configuration, bg="#dddddd").grid(row=3, column=0, columnspan=4, pady=10, sticky="ew")
+
+        config_frame.columnconfigure(1, weight=1)
+
+    def save_configuration(self):
+        config = {
+            'host': self.entry_host.get(),
+            'port': self.entry_port.get(),
+            'user': self.entry_user.get(),
+            'password': self.entry_pass.get(),
+            'dbname': self.entry_dbname.get()
+        }
+        
+        success, msg = config_manager.save_config(config)
+        
+        if success:
+            self.log(msg)
+            # Update running app config
+            new_uri = config_manager.get_db_uri()
+            app.config['SQLALCHEMY_DATABASE_URI'] = new_uri
+            self.log("App config updated (Runtime). Please restart server if running.")
+            messagebox.showinfo("Config Saved", msg + "\nIf server is running, please restart it.")
+        else:
+            self.log(f"Error saving configuration: {msg}")
+            messagebox.showerror("Error", f"Failed to save configuration.\n{msg}")
+
     def log(self, message):
         self.log_area.config(state='normal')
         self.log_area.insert(tk.END, f"{message}\n")
@@ -100,7 +166,11 @@ class ServerManagerApp:
         return image
 
     def setup_tray_icon(self):
-        image = self.create_image()
+        try:
+            image = Image.open('logo_green_tray.png')
+        except Exception:
+            image = self.create_image()
+            
         menu = pystray.Menu(
             pystray.MenuItem("Show", self.show_window_from_tray, default=True),
             pystray.MenuItem("Quit", self.quit_app)
@@ -195,7 +265,14 @@ class ServerManagerApp:
     def init_database(self):
         # Locate schema.sql
         # Assuming we are in estok-py, schema is in ../estok-db/schema.sql
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        if getattr(sys, 'frozen', False):
+            # If frozen, we are running from the executable location
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # Running from source
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
         schema_path = os.path.join(base_dir, 'estok-db', 'schema.sql')
         
         if not os.path.exists(schema_path):

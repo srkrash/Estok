@@ -4,16 +4,17 @@ from sqlalchemy import or_, case, func, desc, extract
 import os
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
+import config_manager
 
 load_dotenv()
 
 app = Flask(__name__)
-# Fallback to a default for development if not set
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/estok')
+# Load DB URI from config file
+app.config['SQLALCHEMY_DATABASE_URI'] = config_manager.get_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "connect_args": {"client_encoding": "utf8"}
-}
+# app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+#     "connect_args": {"client_encoding": "utf8"}
+# }
 
 db = SQLAlchemy(app)
 
