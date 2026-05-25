@@ -75,15 +75,16 @@ Interface ágil para registro de saídas.
         2. Início da descrição (Prefix match).
         3. Contém na descrição param.
 - **Atalhos de Teclado**:
-    - **F1**: Busca (Foca no campo de pesquisa).
+    - **F1**: Busca (Foca no campo de pesquisa e exibe a lista com todos os produtos cadastrados).
     - **F6**: Finalizar Venda.
     - **F8**: Cancelar Venda.
     - **ENTER**:
         - No campo de busca: Se houver apenas 1 resultado, adiciona direto (Modo Scanner). Se houver lista, seleciona o item.
         - Na tela de venda finalizada: Inicia uma nova venda.
     - **ESC**: Fecha overlay de busca ou cancela ações.
+    - **Seta Para Cima/Para Baixo (↑/↓)**: Navega pelos itens da lista com rolagem automática inteligente para manter o produto selecionado sempre visível.
 - **Persistência de Estado (Cart)**: O carrinho é mantido ao navegar entre abas (ex: ir ao estoque e voltar), permitindo consultas rápidas sem perder a venda atual.
-- **Feedback Visual**: Overlay de busca posicionado com precisão, loading indicators, e tela de sucesso ao finalizar.
+- **Feedback Visual**: Overlay de busca posicionado com precisão (reutilizado dinamicamente para preservar posição de rolagem), loading indicators, e tela de sucesso ao finalizar.
 
 ### 5. Sincronização em Tempo Real (Event-Driven)
 Sistema de notificação global (`EventService`) que mantém todas as telas atualizadas automaticamente.
@@ -95,6 +96,19 @@ Sistema de notificação global (`EventService`) que mantém todas as telas atua
     - Um alerta (Snackbar) informa o usuário: *"Atenção: Movimentações de estoque ocorreram..."*.
     - Isso previne que o trabalho de digitação do usuário seja sobrescrito inesperadamente.
 
+
+### 5.1. Formas de Pagamento
+Funcionalidade integrada de controle e finalização de vendas:
+- **Gestão (CRUD)**: Acessível na aba "Formas de Pagamento" dentro de Configurações, permitindo adicionar, editar, ativar/desativar e excluir opções de pagamento.
+- **Atalhos do Teclado no PDV**: Cada forma possui um atalho de uma única letra (ex: 'D' para Dinheiro, 'P' para Pix). Ao clicar em Finalizar (F6), abre-se um modal. Pressionar a letra de atalho no teclado confirma a venda com aquela forma de pagamento instantaneamente.
+- **Soft-Delete Automatizado**: Caso uma forma de pagamento possua vendas associadas no banco, o sistema impede a exclusão física e realiza soft-delete (marcando `ativo=false`), garantindo a integridade dos dados históricos.
+
+### 5.2. Relatórios de Vendas
+Módulo dedicado a relatórios analíticos de faturamento:
+- **Aba de Navegação dedicada**: Separada do Dashboard para flexibilidade de consultas por período.
+- **Filtro de Período**: Seleção personalizada de data inicial e final, com atalhos rápidos ("Hoje", "7 Dias", "Mês Atual").
+- **Participação por Forma de Pagamento**: Visualização com barras de progresso que mostram o percentual de faturamento de cada forma de pagamento.
+- **Lista Detalhada**: Exibe o log detalhado de todas as vendas do período, permitindo filtrar por uma forma de pagamento específica ao clicar em seu card de resumo.
 
 ## Regras de Negócio e Detalhes
 - **Código Auxiliar**: Facilitador de venda. Deve ser único e curto (3-6 dígitos).
@@ -113,6 +127,8 @@ O sistema permite configuração dinâmica de conexões.
     - Tela de Configurações (ícone de engrenagem na Home).
     - Permite definir Host e Porta da API Flask.
     - Persiste via `SharedPreferences` (armazenamento nativo do SO).
+    - **Arquivo `.env`**: Requer a existência de um arquivo `.env` na raiz do diretório `estok-fe` (mesmo vazio ou apenas com comentários) para inicializar a biblioteca `flutter_dotenv` e satisfazer a declaração de assets no `pubspec.yaml`.
+
 
 ## Endpoints API (Flask)
 
@@ -140,10 +156,21 @@ O sistema permite configuração dinâmica de conexões.
 
 ### Vendas
 - `POST /sales`
-    - **Body**:
-        - `items`: Lista de objetos `{id_produto, quantidade, valor_unitario}`.
-        - `valor_total`: Valor total da venda.
-    - **Retorno**: ID da venda gerada.
+  - **Body**:
+    - `items`: Lista de objetos `{id_produto, quantidade, valor_unitario}`.
+    - `valor_total`: Valor total da venda.
+    - `id_forma_pagamento`: ID da forma de pagamento selecionada (opcional).
+  - **Retorno**: ID da venda gerada e confirmação de total.
+
+### Formas de Pagamento
+- `GET /payment-methods`
+  - **Query Params**: `active_only` (bool, padrão `false`)
+  - **Retorno**: Lista de formas de pagamento cadastradas `[{id, nome, atalho, ativo}]`.
+- `POST /payment-methods`
+  - **Body**: `{id (opcional), nome, atalho (única letra), ativo}`.
+  - **Retorno**: Confirmação de cadastro/atualização e a forma de pagamento gerada.
+- `DELETE /payment-methods/<id>`
+  - **Retorno**: Sucesso na exclusão. Se a forma de pagamento já tiver vendas associadas, realiza soft-delete (apenas desativa, definindo `ativo=false`).
 
 ### Dashboard
 - `GET /dashboard/summary`
@@ -163,3 +190,11 @@ O sistema permite configuração dinâmica de conexões.
 - `GET /dashboard/smart-alerts`
     - **Lógica**: Identifica produtos com cobertura de estoque < 7 dias (baseado na média de vendas dos últimos 30 dias).
     - **Retorno**: Lista de produtos críticos.
+
+### Relatórios
+- `GET /reports/sales-by-payment`
+  - **Query Params**: `start_date` (YYYY-MM-DD), `end_date` (YYYY-MM-DD).
+  - **Retorno**: `{ "start_date": str, "end_date": str, "total_faturamento": float, "data": [{ "id": int, "nome": str, "atalho": str, "qtd_vendas": int, "total_vendas": float, "percentual": float }] }`.
+- `GET /reports/sales-details`
+  - **Query Params**: `start_date` (YYYY-MM-DD), `end_date` (YYYY-MM-DD), `id_forma_pagamento` (int, opcional).
+  - **Retorno**: `{ "start_date": str, "end_date": str, "count": int, "data": [{ "id": int, "data_venda": str, "valor_total": float, "id_forma_pagamento": int, "forma_pagamento_nome": str, "items_count": float }] }`.

@@ -62,3 +62,15 @@
 - [x] **Backend**: Persistir configurações em `db_config.json`.
 - [x] **Frontend**: Criar tela de configurações de API (Host/Porta).
 - [x] **Frontend**: Persistir URL da API via SharedPreferences.
+
+## Formas de Pagamento
+- [x] Criar tabela 'formas_pagamento' no banco de dados e alterar tabela 'vendas' no PostgreSQL
+- [x] Implementar modelo SQLAlchemy e endpoints CRUD no Flask (`/payment-methods`)
+- [x] Modificar endpoint de registro de venda (`/sales`) para persistir a forma de pagamento
+- [x] Criar interface de gerenciamento (CRUD) de Formas de Pagamento em `config_screen.dart`
+- [x] Integrar seleção de forma de pagamento na Tela de Vendas (PDV) com suporte a atalhos de teclado rápidos (ex: pressionar 'D' para Dinheiro)
+
+## Relatórios de Vendas
+- [x] Criar endpoints de relatório de vendas por forma de pagamento e detalhes no Flask (`/reports/sales-by-payment` e `/reports/sales-details`)
+- [x] Adicionar aba de navegação dedicada para Relatórios em `home_screen.dart`
+- [x] Criar a tela `reports_screen.dart` para filtros de data, estatísticas de vendas, ticket médio, participação das formas com barras de progresso, e listagem detalhada filtrável

@@ -26,6 +26,18 @@ Armazena o cadastro dos itens.
 
 ---
 
+### `formas_pagamento`
+Armazena as formas de pagamento disponíveis.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | SERIAL (PK) | Identificador da forma de pagamento |
+| `nome` | VARCHAR(50) | Nome/Descrição da forma (ex: Dinheiro, Pix, Cartão) |
+| `atalho` | VARCHAR(1) | Letra única (case-insensitive) usada como atalho no PDV |
+| `ativo` | BOOLEAN | Define se a forma de pagamento está ativa para uso |
+
+---
+
 ### `vendas`
 Cabeçalho das vendas realizadas.
 
@@ -34,6 +46,7 @@ Cabeçalho das vendas realizadas.
 | `id` | SERIAL (PK) | Identificador da venda |
 | `data_venda` | TIMESTAMP | Data e hora da venda |
 | `valor_total` | DECIMAL(10,2) | Soma dos itens |
+| `id_forma_pagamento` | INTEGER (FK, NULL) | Referência à tabela `formas_pagamento` |
 
 ---
 

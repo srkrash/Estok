@@ -6,6 +6,7 @@ import 'product_screen.dart';
 import 'stock_screen.dart';
 import 'sales_screen.dart';
 import 'config_screen.dart';
+import 'reports_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const ProductScreen(),
     const StockScreen(),
     const SalesScreen(),
+    const ReportsScreen(),
   ];
 
   @override
@@ -137,6 +139,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () => _onTabTapped(3),
                       color: Colors.green.shade50,
                       selectedColor: Colors.green.shade100,
+                    ),
+                    const SizedBox(width: 4),
+                    _NavigationTab(
+                      label: 'Relatórios',
+                      icon: Icons.analytics,
+                      isSelected: _selectedIndex == 4,
+                      onTap: () => _onTabTapped(4),
+                      color: Colors.purple.shade50,
+                      selectedColor: Colors.purple.shade100,
                     ),
                   ],
                 ),

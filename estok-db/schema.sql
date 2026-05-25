@@ -14,11 +14,20 @@ CREATE TABLE IF NOT EXISTS public.produtos (
     ativo BOOLEAN DEFAULT true
 );
 
+-- Table: formas_pagamento
+CREATE TABLE IF NOT EXISTS public.formas_pagamento (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    atalho VARCHAR(1) NOT NULL UNIQUE,
+    ativo BOOLEAN DEFAULT true
+);
+
 -- Table: vendas
 CREATE TABLE IF NOT EXISTS public.vendas (
     id SERIAL PRIMARY KEY,
     data_venda TIMESTAMP WITHOUT TIME ZONE,
-    valor_total NUMERIC(10,2)
+    valor_total NUMERIC(10,2),
+    id_forma_pagamento INTEGER REFERENCES public.formas_pagamento(id)
 );
 
 -- Table: itens_venda
@@ -52,4 +61,12 @@ CREATE INDEX IF NOT EXISTS index_descricao_trigram ON public.produtos USING gin 
 
 -- Indexes for itens_venda (Primary Key index is implicit, but good to have explicit FK indexes for performance if needed, though not strictly in original schema observation. I will stick to observed indexes only + implicit PKs)
 -- Observed indexes were mainly PKs and the specific ones on produtos.
+
+-- Seeds for formas_pagamento
+INSERT INTO public.formas_pagamento (nome, atalho, ativo)
+VALUES 
+    ('Dinheiro', 'D', true),
+    ('Cartão', 'C', true),
+    ('Pix', 'P', true)
+ON CONFLICT (atalho) DO NOTHING;
 

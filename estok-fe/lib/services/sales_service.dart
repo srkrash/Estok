@@ -8,13 +8,14 @@ import 'event_service.dart';
 class SalesService {
   String get baseUrl => AppConfig.apiUrl;
 
-  Future<Map<String, dynamic>> registerSale(List<SaleItem> items, double totalValue) async {
+  Future<Map<String, dynamic>> registerSale(List<SaleItem> items, double totalValue, int? idFormaPagamento) async {
     final response = await http.post(
       Uri.parse('$baseUrl/sales'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'items': items.map((e) => e.toJson()).toList(),
         'valor_total': totalValue,
+        if (idFormaPagamento != null) 'id_forma_pagamento': idFormaPagamento,
       }),
     );
 
@@ -22,7 +23,8 @@ class SalesService {
       EventService().notifyProductUpdate();
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to register sale: ${response.statusCode}');
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(data['message'] ?? 'Failed to register sale: ${response.statusCode}');
     }
   }
 }

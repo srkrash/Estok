@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:estok_fe/models/product.dart';
 import 'package:estok_fe/models/sale_item.dart';
+import 'package:estok_fe/models/payment_method.dart';
 import 'package:estok_fe/services/product_service.dart';
 import 'package:estok_fe/services/sales_service.dart';
+import 'package:estok_fe/services/payment_method_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -17,18 +19,22 @@ class SalesScreen extends StatefulWidget {
 class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClientMixin {
   final ProductService _productService = ProductService();
   final SalesService _salesService = SalesService();
+  final PaymentMethodService _paymentMethodService = PaymentMethodService();
   
   final TextEditingController _searchController = TextEditingController();
   late FocusNode _searchFocusNode;
   late FocusNode _finalizedFocusNode;
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _overlayScrollController = ScrollController();
   final LayerLink _layerLink = LayerLink();
 
   final List<SaleItem> _cartItems = [];
   List<Product> _searchResults = [];
+  List<PaymentMethod> _paymentMethods = [];
   Timer? _debounce;
   OverlayEntry? _overlayEntry;
   int _selectedIndex = 0;
+  double _overlayQty = 1.0;
   bool _isLoading = false;
   
   // Sale Finalized State
@@ -43,6 +49,7 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
   @override
   void initState() {
     super.initState();
+    _loadPaymentMethods();
     
     // Initialize FocusNode with key handling for navigation
     _searchFocusNode = FocusNode(onKeyEvent: (node, event) {
@@ -80,6 +87,7 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
     _searchFocusNode.dispose();
     _finalizedFocusNode.dispose();
     _scrollController.dispose();
+    _overlayScrollController.dispose();
     _removeOverlay();
     _debounce?.cancel();
     super.dispose();
@@ -91,7 +99,6 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
       _selectedIndex = (_selectedIndex + direction + _searchResults.length) % _searchResults.length;
       
       // Update overlay to reflect selection change
-      // We re-render the overlay by calling showOverlay again with current qty
        double qty = 1.0;
        final regex = RegExp(r'^(\d+(?:[.,]\d+)?)\*');
        final match = regex.firstMatch(_searchController.text);
@@ -101,6 +108,26 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
        }
        _showOverlay(qty);
     });
+  }
+
+  void _scrollToSelected() {
+    if (!_overlayScrollController.hasClients) return;
+    
+    const double itemHeight = 64.0; // Fixed ListTile container height
+    double viewportHeight = _overlayScrollController.position.viewportDimension;
+    if (viewportHeight <= 0) {
+      viewportHeight = 200.0;
+    }
+    
+    final double targetOffset = _selectedIndex * itemHeight;
+    final double currentOffset = _overlayScrollController.offset;
+    
+    if (targetOffset + itemHeight > currentOffset + viewportHeight) {
+      final double newOffset = (targetOffset + itemHeight) - viewportHeight;
+      _overlayScrollController.jumpTo(newOffset.clamp(0.0, _overlayScrollController.position.maxScrollExtent));
+    } else if (targetOffset < currentOffset) {
+      _overlayScrollController.jumpTo(targetOffset.clamp(0.0, _overlayScrollController.position.maxScrollExtent));
+    }
   }
 
   void _selectResult() {
@@ -209,68 +236,84 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
   }
 
   void _showOverlay(double qty) {
-    _removeOverlay();
+    _overlayQty = qty;
 
-    final width = _layerLink.leaderSize?.width ?? 400.0;
-    
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          targetAnchor: Alignment.bottomLeft,
-          child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(4),
-            color: Colors.white,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 250),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    color: Colors.blueGrey[50],
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Resultados (Qtd: $qty)'),
-                        const Text('↑ ↓ Navegar', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
+    if (_overlayEntry != null) {
+      _overlayEntry!.markNeedsBuild();
+    } else {
+      final width = _layerLink.leaderSize?.width ?? 400.0;
+      
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(4),
+              color: Colors.white,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 250),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                     Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      color: Colors.blueGrey[50],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Resultados (Qtd: $_overlayQty)'),
+                          const Text('↑ ↓ Navegar', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
                     ),
-                  ),
-                   Flexible(
-                     child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final product = _searchResults[index];
-                        final isSelected = index == _selectedIndex;
-                        return Container(
-                          color: isSelected ? Colors.blue[100] : null,
-                          child: ListTile(
-                            leading: const Icon(Icons.local_offer_outlined),
-                            title: Text(product.description),
-                            subtitle: Text('${product.ean13 ?? ""} | R\$ ${product.salePrice?.toStringAsFixed(2) ?? "0.00"}'),
-                            trailing: Text('Estoque: ${product.quantity}'),
-                            onTap: () => _addToCart(product, qty),
-                            dense: true,
-                          ),
-                        );
-                      },
-                                     ),
-                   ),
-                ],
+                     Flexible(
+                       child: ListView.builder(
+                        controller: _overlayScrollController,
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: _searchResults.length,
+                        itemBuilder: (context, index) {
+                          final product = _searchResults[index];
+                          final isSelected = index == _selectedIndex;
+                          return SizedBox(
+                            height: 64.0,
+                            child: Container(
+                              color: isSelected ? Colors.blue[100] : null,
+                              child: ListTile(
+                                leading: const Icon(Icons.local_offer_outlined),
+                                title: Text(
+                                  product.description,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text('${product.ean13 ?? ""} | R\$ ${product.salePrice?.toStringAsFixed(2) ?? "0.00"}'),
+                                trailing: Text('Estoque: ${product.quantity}'),
+                                onTap: () => _addToCart(product, _overlayQty),
+                                dense: true,
+                              ),
+                            ),
+                          );
+                        },
+                       ),
+                     ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    Overlay.of(context).insert(_overlayEntry!);
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelected();
+    });
   }
 
   void _removeOverlay() {
@@ -311,6 +354,33 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
 
 
 
+  void _onF1Pressed() async {
+    _searchFocusNode.requestFocus();
+    try {
+      final results = await _productService.getAllProducts();
+      setState(() {
+        _searchResults = results;
+        _selectedIndex = 0;
+      });
+      if (results.isNotEmpty) {
+        _showOverlay(1.0);
+      }
+    } catch (e) {
+      debugPrint('Error loading all products on F1: $e');
+    }
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    try {
+      final list = await _paymentMethodService.getPaymentMethods(activeOnly: true);
+      setState(() {
+        _paymentMethods = list;
+      });
+    } catch (e) {
+      debugPrint('Error loading payment methods: $e');
+    }
+  }
+
   void _finalizeSale() async {
     if (_cartItems.isEmpty) return;
     if (_isLoading) return;
@@ -318,10 +388,37 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
     setState(() => _isLoading = true);
 
     try {
+      final list = await _paymentMethodService.getPaymentMethods(activeOnly: true);
+      setState(() {
+        _paymentMethods = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error refreshing payment methods: $e');
+      setState(() => _isLoading = false);
+    }
+
+    if (!mounted) return;
+
+    if (_paymentMethods.isEmpty) {
+      _processSaleFinalize(null);
+    } else {
+      _showPaymentMethodsDialog();
+    }
+  }
+
+  Future<void> _processSaleFinalize(int? paymentMethodId, {BuildContext? dialogContext}) async {
+    setState(() => _isLoading = true);
+
+    try {
       final total = _subtotal;
-      await _salesService.registerSale(_cartItems, total);
+      await _salesService.registerSale(_cartItems, total, paymentMethodId);
       
       if (!mounted) return;
+
+      if (dialogContext != null && Navigator.canPop(dialogContext)) {
+        Navigator.pop(dialogContext); // Close dialog
+      }
 
       setState(() {
         _lastSaleTotal = total;
@@ -329,7 +426,7 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
         _cartItems.clear();
         _isLoading = false;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-            _finalizedFocusNode.requestFocus();
+          _finalizedFocusNode.requestFocus();
         });
       });
 
@@ -337,9 +434,115 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao finalizar venda: $e')),
+        SnackBar(
+          content: Text('Erro ao finalizar venda: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
+  }
+
+  void _showPaymentMethodsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) {
+        final currencyFormat = NumberFormat.simpleCurrency(locale: 'pt_BR');
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Focus(
+              autofocus: true,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.escape) {
+                    Navigator.pop(dialogCtx);
+                    return KeyEventResult.handled;
+                  }
+                  
+                  final char = event.character?.toUpperCase();
+                  if (char != null && char.isNotEmpty) {
+                    PaymentMethod? match;
+                    for (var m in _paymentMethods) {
+                      if (m.atalho.toUpperCase() == char && m.ativo) {
+                        match = m;
+                        break;
+                      }
+                    }
+                    if (match != null) {
+                      _processSaleFinalize(match.id, dialogContext: dialogCtx);
+                      return KeyEventResult.handled;
+                    }
+                  }
+                }
+                return KeyEventResult.ignored;
+              },
+              child: AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(Icons.payment, color: Colors.green.shade700),
+                    const SizedBox(width: 12),
+                    const Text('Forma de Pagamento'),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'VALOR TOTAL: ${currencyFormat.format(_subtotal)}',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Pressione o atalho no teclado ou clique para selecionar:',
+                      style: TextStyle(color: Colors.black54, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 450),
+                      child: Column(
+                        children: _paymentMethods.map((method) {
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: _isLoading
+                                  ? null
+                                  : () => _processSaleFinalize(method.id, dialogContext: dialogCtx),
+                              borderRadius: BorderRadius.circular(8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.green.shade50,
+                                  foregroundColor: Colors.green.shade800,
+                                  child: Text(
+                                    method.atalho,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                title: Text(
+                                  method.nome,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: const Text('Cancelar (ESC)'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _startNewSale() {
@@ -438,7 +641,7 @@ class _SalesScreenState extends State<SalesScreen> with AutomaticKeepAliveClient
 
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.f1): () => _searchFocusNode.requestFocus(),
+        const SingleActivator(LogicalKeyboardKey.f1): _onF1Pressed,
         const SingleActivator(LogicalKeyboardKey.f6): _finalizeSale,
         const SingleActivator(LogicalKeyboardKey.f8): _cancelSale,
       },

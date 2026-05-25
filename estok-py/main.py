@@ -71,21 +71,41 @@ class MovimentacaoEstoque(db.Model):
             'observacao': self.observacao
         }
 
+class FormaPagamento(db.Model):
+    __tablename__ = 'formas_pagamento'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), nullable=False)
+    atalho = db.Column(db.String(1), nullable=False, unique=True)
+    ativo = db.Column(db.Boolean, default=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'atalho': self.atalho.upper(),
+            'ativo': self.ativo
+        }
+
 class Venda(db.Model):
     __tablename__ = 'vendas'
 
     id = db.Column(db.Integer, primary_key=True)
     data_venda = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     valor_total = db.Column(db.Numeric(10, 2))
+    id_forma_pagamento = db.Column(db.Integer, db.ForeignKey('formas_pagamento.id'), nullable=True)
 
-    # Relationship to Items
+    # Relationships
     items = db.relationship('ItemVenda', backref='venda', lazy=True)
+    forma_pagamento = db.relationship('FormaPagamento', backref='vendas', lazy=True)
 
     def to_dict(self):
         return {
             'id': self.id,
             'data_venda': self.data_venda.isoformat() if self.data_venda else None,
             'valor_total': float(self.valor_total) if self.valor_total is not None else 0.0,
+            'id_forma_pagamento': self.id_forma_pagamento,
+            'forma_pagamento_nome': self.forma_pagamento.nome if self.forma_pagamento else None,
             'items': [item.to_dict() for item in self.items]
         }
 
@@ -549,12 +569,21 @@ def create_sale():
         
         calculated_total = 0.0
         
+        id_forma_pagamento = data.get('id_forma_pagamento')
+        if id_forma_pagamento:
+            forma = db.session.get(FormaPagamento, id_forma_pagamento)
+            if not forma:
+                raise ValueError(f"Forma de pagamento ID {id_forma_pagamento} não encontrada")
+            if not forma.ativo:
+                raise ValueError(f"Forma de pagamento '{forma.nome}' está inativa")
+        
         # We need to process items first to check validity, but we need Sale ID for FK.
         # So we add Sale first, flush to get ID, then items.
         
         new_sale = Venda(
             data_venda=datetime.now(timezone.utc),
-            valor_total=0 # Will update after summing items
+            valor_total=0, # Will update after summing items
+            id_forma_pagamento=id_forma_pagamento
         )
         db.session.add(new_sale)
         db.session.flush() # Get ID
@@ -631,6 +660,248 @@ def create_sale():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error registering sale: {str(e)}"}), 500
+
+# --- Payment Method Routes ---
+
+@app.route('/payment-methods', methods=['GET'])
+def get_payment_methods():
+    """
+    Get all payment methods.
+    Query Params:
+        active_only: bool (optional, defaults to false)
+    """
+    try:
+        active_only = request.args.get('active_only', 'false').lower() == 'true'
+        query = FormaPagamento.query
+        if active_only:
+            query = query.filter_by(ativo=True)
+        # Order by atalho so shortcuts are in consistent order, then name
+        methods = query.order_by(FormaPagamento.atalho, FormaPagamento.nome).all()
+        return jsonify([m.to_dict() for m in methods])
+    except Exception as e:
+        return jsonify({"message": f"Error retrieving payment methods: {str(e)}"}), 500
+
+@app.route('/payment-methods', methods=['POST'])
+def save_payment_method():
+    """
+    Create or update a payment method.
+    Body:
+        id: int (optional, if updating)
+        nome: str
+        atalho: str (1 char, uppercase)
+        ativo: bool (optional, defaults to true)
+    """
+    data = request.json
+    if not data or 'nome' not in data or 'atalho' not in data:
+        return jsonify({"message": "Missing 'nome' or 'atalho'"}), 400
+    
+    nome = data.get('nome').strip()
+    atalho = data.get('atalho').strip().upper()
+    ativo = data.get('ativo', True)
+    method_id = data.get('id')
+
+    if len(atalho) != 1:
+        return jsonify({"message": "Atalho deve ser uma única letra"}), 400
+
+    try:
+        # Check uniqueness of shortcut
+        existing = FormaPagamento.query.filter(FormaPagamento.atalho == atalho).first()
+        if existing and (method_id is None or existing.id != method_id):
+            return jsonify({"message": f"Atalho '{atalho}' já está sendo usado por '{existing.nome}'"}), 400
+
+        if method_id:
+            # Update
+            method = db.session.get(FormaPagamento, method_id)
+            if not method:
+                return jsonify({"message": "Forma de pagamento não encontrada"}), 404
+            method.nome = nome
+            method.atalho = atalho
+            method.ativo = ativo
+            message = "Forma de pagamento atualizada"
+        else:
+            # Create
+            method = FormaPagamento(nome=nome, atalho=atalho, ativo=ativo)
+            db.session.add(method)
+            message = "Forma de pagamento cadastrada"
+
+        db.session.commit()
+        return jsonify({"message": message, "data": method.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error saving payment method: {str(e)}"}), 500
+
+@app.route('/payment-methods/<int:id>', methods=['DELETE'])
+def delete_payment_method(id):
+    """
+    Delete payment method. If sales are linked, perform soft-delete instead.
+    """
+    try:
+        method = db.session.get(FormaPagamento, id)
+        if not method:
+            return jsonify({"message": "Forma de pagamento não encontrada"}), 404
+
+        # Check if there are sales referencing it
+        has_sales = Venda.query.filter_by(id_forma_pagamento=id).first() is not None
+        if has_sales:
+            method.ativo = False
+            db.session.commit()
+            return jsonify({
+                "message": "Forma de pagamento desativada (soft-delete), pois já possui vendas associadas.",
+                "soft_delete": True
+            })
+        else:
+            db.session.delete(method)
+            db.session.commit()
+            return jsonify({
+                "message": "Forma de pagamento excluída com sucesso.",
+                "soft_delete": False
+            })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error deleting payment method: {str(e)}"}), 500
+
+# --- Report Routes ---
+
+@app.route('/reports/sales-by-payment', methods=['GET'])
+def get_reports_sales_by_payment():
+    """
+    Get Sales Report grouped by Payment Method.
+    Query Params:
+        start_date: YYYY-MM-DD
+        end_date: YYYY-MM-DD
+    """
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        else:
+            # Default to start of current month
+            start_date = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+        else:
+            # Default to end of today
+            end_date = datetime.now(timezone.utc).replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        # 1. Total sales faturamento in this period
+        total_faturamento = db.session.query(func.sum(Venda.valor_total)).filter(
+            Venda.data_venda >= start_date,
+            Venda.data_venda <= end_date
+        ).scalar() or 0.0
+        total_faturamento = float(total_faturamento)
+
+        # 2. Query sales grouped by payment method
+        query = db.session.query(
+            FormaPagamento.id,
+            FormaPagamento.nome,
+            FormaPagamento.atalho,
+            func.count(Venda.id).label('qtd_vendas'),
+            func.sum(Venda.valor_total).label('total_vendas')
+        ).select_from(Venda).join(
+            FormaPagamento, Venda.id_forma_pagamento == FormaPagamento.id, isouter=True
+        ).filter(
+            Venda.data_venda >= start_date,
+            Venda.data_venda <= end_date
+        ).group_by(
+            FormaPagamento.id, FormaPagamento.nome, FormaPagamento.atalho
+        ).order_by(
+            desc('total_vendas')
+        ).all()
+
+        results = []
+        for row in query:
+            fp_id = row[0]
+            fp_nome = row[1] or "Sem Forma de Pagamento"
+            fp_atalho = row[2] or "-"
+            qtd_vendas = int(row[3])
+            total_vendas = float(row[4] or 0.0)
+            
+            percentage = (total_vendas / total_faturamento * 100.0) if total_faturamento > 0 else 0.0
+
+            results.append({
+                "id": fp_id,
+                "nome": fp_nome,
+                "atalho": fp_atalho,
+                "qtd_vendas": qtd_vendas,
+                "total_vendas": total_vendas,
+                "percentual": round(percentage, 2)
+            })
+
+        return jsonify({
+            "start_date": start_date.strftime('%Y-%m-%d'),
+            "end_date": end_date.strftime('%Y-%m-%d'),
+            "total_faturamento": total_faturamento,
+            "data": results
+        })
+
+    except Exception as e:
+        return jsonify({"message": f"Error loading sales-by-payment report: {str(e)}"}), 500
+
+@app.route('/reports/sales-details', methods=['GET'])
+def get_reports_sales_details():
+    """
+    Get detailed Sales List.
+    Query Params:
+        start_date: YYYY-MM-DD
+        end_date: YYYY-MM-DD
+        id_forma_pagamento: int (optional, filter by payment method ID)
+    """
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        id_forma_pagamento_str = request.args.get('id_forma_pagamento')
+
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        else:
+            start_date = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+        else:
+            end_date = datetime.now(timezone.utc).replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        query = Venda.query.filter(
+            Venda.data_venda >= start_date,
+            Venda.data_venda <= end_date
+        )
+
+        if id_forma_pagamento_str is not None:
+            if id_forma_pagamento_str.lower() in ('null', '-1', ''):
+                query = query.filter(Venda.id_forma_pagamento == None)
+            else:
+                try:
+                    fp_id = int(id_forma_pagamento_str)
+                    query = query.filter(Venda.id_forma_pagamento == fp_id)
+                except ValueError:
+                    pass
+
+        sales = query.order_by(desc(Venda.data_venda)).all()
+
+        results = []
+        for s in sales:
+            items_count = sum(float(item.quantidade) for item in s.items)
+            results.append({
+                "id": s.id,
+                "data_venda": s.data_venda.isoformat() if s.data_venda else None,
+                "valor_total": float(s.valor_total) if s.valor_total is not None else 0.0,
+                "id_forma_pagamento": s.id_forma_pagamento,
+                "forma_pagamento_nome": s.forma_pagamento.nome if s.forma_pagamento else "Sem Forma de Pagamento",
+                "items_count": items_count
+            })
+
+        return jsonify({
+            "start_date": start_date.strftime('%Y-%m-%d'),
+            "end_date": end_date.strftime('%Y-%m-%d'),
+            "count": len(results),
+            "data": results
+        })
+
+    except Exception as e:
+        return jsonify({"message": f"Error loading sales-details report: {str(e)}"}), 500
 
 @app.route('/')
 def hello():
